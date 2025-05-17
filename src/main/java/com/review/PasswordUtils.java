@@ -18,6 +18,11 @@ public class PasswordUtils {
         return OpenBSDBCrypt.generate(senha.toCharArray(), salt, BCRYPT_COST);
     }
 
+    public static String gerarHashBcrypt(String senha) {
+        byte[] salt = getRandomSalt();
+        return OpenBSDBCrypt.generate(senha.toCharArray(), salt, BCRYPT_COST);
+    }
+
     public static boolean validarSenha(String senha, String hashArmazenado) {
         return OpenBSDBCrypt.checkPassword(
                 hashArmazenado,

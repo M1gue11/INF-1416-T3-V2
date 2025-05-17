@@ -19,22 +19,20 @@ public class DatabaseManager {
                     "CREATE TABLE IF NOT EXISTS Chaveiro (" +
                             "KID INTEGER PRIMARY KEY AUTOINCREMENT," +
                             "caminho_certificado TEXT NOT NULL," + // Caminho do arquivo (255 chars)
-                            "caminho_chave_privada TEXT NOT NULL," + // Caminho do arquivo (255 chars)
-                            "frase_secreta_hash TEXT NOT NULL," + // Hash da frase secreta (255 chars)
-                            "frase_secreta_salt TEXT NOT NULL)");
+                            "caminho_chave_privada TEXT NOT NULL,"// Caminho do arquivo (255 chars)
+            );
 
             // Table User (agora com referência ao Chaveiro)
             stmt.executeUpdate(
                     "CREATE TABLE IF NOT EXISTS Usuario (" +
                             "UID INTEGER PRIMARY KEY AUTOINCREMENT," +
-                            "nome TEXT NOT NULL," +
-                            "email TEXT UNIQUE NOT NULL," +
                             "senha_pessoal_hash TEXT NOT NULL," +
                             "salt TEXT NOT NULL," +
                             "grupo TEXT NOT NULL CHECK (grupo IN ('Administrador', 'Usuario'))," + // Grupo como enum
                             "bloqueado BOOLEAN DEFAULT FALSE," +
                             "KID INTEGER NOT NULL," +
                             "numero_acessos INTEGER NOT NULL" +
+                            "ultimo_bloqueio_ts INTEGER " +
                             "FOREIGN KEY (KID) REFERENCES Chaveiro(KID))");
 
             // Tabela Grupo
@@ -196,7 +194,7 @@ public class DatabaseManager {
         return -1;
     }
 
-    private static String getMessageByMessageCode(int codigo, Optional<String> arqName, Optional<String> loginName) {
+    public static String getMessageByMessageCode(int codigo, Optional<String> arqName, Optional<String> loginName) {
         switch (codigo) {
             case 1001:
                 return "Sistema iniciado.";
