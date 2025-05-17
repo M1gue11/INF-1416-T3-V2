@@ -58,6 +58,8 @@ public class CofreApp extends  Application{
         HBox campoLogin = new HBox(10, new Label("Login: "), new TextField());
         HBox campoSenha = new HBox(10, new Label("Senha: "), new TextField());
         HBox campoGrupo = new HBox(10, new Label("Grupo: "), new TextField());
+        HBox campoConfirmacaoSenha = new HBox(10, new Label("Confirmação Senha: "), new TextField());
+        HBox campoCaminhoChavePrivada = new HBox(10, new Label("Caminho da chave privada: "), new TextField());
         HBox campoCaminhoCertificado = new HBox(10, new Label("Caminho do certificado: "), new TextField());
 
 
@@ -76,11 +78,12 @@ public class CofreApp extends  Application{
         /*Cria o objeto user*/
 
         Label userAcssesCount = new Label("Total de acessos do usuário: " + Integer.toString(user.acessosTotais));
+        Label formulario = new Label("Formulário de cadastro:");
 
-        VBox layout = new VBox(20, titleLabel,header,userAcssesCount,campoNome,campoLogin,campoSenha,campoGrupo,campoCaminhoCertificado,  bottonButtons);
+        VBox layout = new VBox(20, titleLabel,header,userAcssesCount,formulario,campoNome,campoLogin,campoGrupo,campoSenha,campoConfirmacaoSenha,campoCaminhoChavePrivada,campoCaminhoCertificado,  bottonButtons);
         layout.setAlignment(javafx.geometry.Pos.CENTER);
 
-        Scene scene = new Scene(layout, 500, 400);
+        Scene scene = new Scene(layout, 600, 600);
         primaryStage.setScene(scene);
     }
 }
