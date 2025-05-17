@@ -24,10 +24,10 @@ public class CofreApp extends Application {
 
         // Cria a cena inicial com um user aleatorio
         user.fetchDefault();
-        if (isFirstAccess) {
+        if (!isFirstAccess) {
             showCadastroPage();
         } else {
-            showHomePage(user);
+            showLoginPage();
         }
 
         primaryStage.setTitle("Cofre digital");
@@ -91,6 +91,21 @@ public class CofreApp extends Application {
         layout.setAlignment(javafx.geometry.Pos.CENTER);
 
         Scene scene = new Scene(layout, 500, 500);
+        primaryStage.setScene(scene);
+    }
+
+    private void showLoginPage() {
+        Label titleLabel = new Label("Login");
+
+        HBox campoLogin = new HBox(10, new Label("Login: "), new TextField());
+        HBox campoFraseSecreta = new HBox(10, new Label("Frase secreta: "), new TextField());
+        HBox campoSenha = new HBox(10, new Label("Senha: "), new TextField());
+        HBox campoConfirmacaoSenha = new HBox(10, new Label("Confirmação Senha: "), new TextField());
+
+        VBox layout = new VBox(20,titleLabel, campoLogin, campoFraseSecreta, campoSenha, campoConfirmacaoSenha);
+        layout.setAlignment(javafx.geometry.Pos.CENTER);
+
+        Scene scene = new Scene(layout, 350, 350);
         primaryStage.setScene(scene);
     }
 }
