@@ -17,6 +17,11 @@ import java.security.cert.X509Certificate;
 import java.util.Calendar;
 import java.util.Date;
 
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
+
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -141,6 +146,31 @@ public class CAGenerate {
         System.out.println("Chave privada salva em formato binário em: " + filePath);
     }
 
+    public byte[] securePk(PrivateKey pk, String fraseSecreta) {
+        try {
+            KeyGenerator keyGen = KeyGenerator.getInstance("AES");
+            SecureRandom secureRandom = SecureRandom.getInstance("SHA1PRNG");
+            secureRandom.setSeed(fraseSecreta.getBytes("UTF-8"));
+            keyGen.init(256, secureRandom);
+            SecretKey secretKey = keyGen.generateKey();
+
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            byte[] iv = new byte[16];
+            secureRandom.nextBytes(iv); // Preencher o iv com bytes aleatórios
+            IvParameterSpec ivspec = new IvParameterSpec(iv);
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivspec);
+            byte[] privateKeyBytes = pk.getEncoded();
+            byte[] encryptedPrivateKeyBytes = cipher.doFinal(privateKeyBytes);
+
+            return encryptedPrivateKeyBytes;
+
+        } catch (Exception e) {
+            System.err.println("Erro ao criptografar a chave privada: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     /**
      * Método principal para gerar e salvar o certificado e a chave privada.
      * 
@@ -161,7 +191,7 @@ public class CAGenerate {
     public void generateAndSaveAssets(String commonName, String emailAddress, String orgUnit, String organization,
             String locality, String stateOrProvince, String country,
             int validityDays, int keySize,
-            String certFilePath, String keyFilePath) {
+            String certFilePath, String keyFilePath, String passPhrase) {
         try {
             // 1. Gerar par de chaves
             KeyPair keyPair = generateKeyPair(keySize);
@@ -178,6 +208,7 @@ public class CAGenerate {
             saveCertificateToFile(certificate, certFilePath);
 
             // 5. Salvar chave privada em arquivo
+            securePk(keyPair.getPrivate(), passPhrase);
             savePrivateKeyToFile(keyPair.getPrivate(), keyFilePath);
 
             System.out.println("Certificado e chave privada gerados com sucesso.");
@@ -216,6 +247,7 @@ public class CAGenerate {
         String locality = "Rio de Janeiro";
         String stateOrProvince = "Rio de Janeiro";
         String country = "BR"; // Código do país com 2 letras (ISO 3166-1 alpha-2)
+        String passPhrase = "teste"; // Frase secreta para criptografar a chave privada
 
         int validityDays = 365; // Validade de 1 ano
         int keySize = 2048; // Tamanho da chave RSA
@@ -227,6 +259,6 @@ public class CAGenerate {
         caGenerator.generateAndSaveAssets(
                 commonName, emailAddress, orgUnit, organization, locality, stateOrProvince, country,
                 validityDays, keySize,
-                certFilePath, keyFilePath);
+                certFilePath, keyFilePath, passPhrase);
     }
 }

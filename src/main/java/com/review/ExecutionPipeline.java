@@ -21,7 +21,11 @@ public class ExecutionPipeline {
     public void login() {
     }
 
-    public void cadastro() {
+    public void cadastro(String caminhoCert, String caminhoPk, String fraseSec,
+            String gp, String senha, String confirmacaoSenha) {
+        // TODO: implementar validacoes
+
+        String senhaHash = PasswordUtils.gerarHashBcrypt(senha);
 
     }
 }

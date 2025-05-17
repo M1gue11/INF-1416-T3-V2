@@ -67,10 +67,13 @@ public class CofreApp extends Application {
 
         Button cadastrarButton = new Button("Cadastrar");
         cadastrarButton.setOnAction(e -> {
-            /*
-             * Trocar pelas funções de validação e outras para verificar estados da
-             * aplicação
-             */
+            String caminhoCertificado = ((TextField) campoCaminhoCertificado.getChildren().get(1)).getText();
+            String caminhoChavePrivada = ((TextField) campoCaminhoChavePrivada.getChildren().get(1)).getText();
+            String fraseSecreta = ((TextField) campoFraseSecreta.getChildren().get(1)).getText();
+            String grupo = ((TextField) campoGrupo.getChildren().get(1)).getText();
+            String senha = ((TextField) campoSenha.getChildren().get(1)).getText();
+            String confirmacaoSenha = ((TextField) campoConfirmacaoSenha.getChildren().get(1)).getText();
+
         });
         HBox bottonButtons = new HBox(10, cadastrarButton);
 
