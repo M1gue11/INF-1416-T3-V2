@@ -1,7 +1,7 @@
 package com.review.view;
 
+import com.review.ExecutionPipeline;
 import com.review.User;
-import com.review.view.HeaderComponent;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -10,21 +10,25 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import javafx.scene.text.Text;
 import javafx.scene.control.TextField;
 
-
-public class CofreApp extends  Application{
+public class CofreApp extends Application {
 
     private Stage primaryStage;
     private User user = new User();
+    private ExecutionPipeline pipeline = ExecutionPipeline.getInstance();
+    private boolean isFirstAccess = pipeline.isFirstAccess();
 
     public void start(Stage primaryStage) {
         this.primaryStage = primaryStage;
 
         // Cria a cena inicial com um user aleatorio
         user.fetchDefault();
-        showHomePage(user);
+        if (isFirstAccess) {
+            showCadastroPage();
+        } else {
+            showHomePage(user);
+        }
 
         primaryStage.setTitle("Cofre digital");
         primaryStage.show();
@@ -40,10 +44,10 @@ public class CofreApp extends  Application{
         Label userAcssesCount = new Label("Total de acessos do usuário: " + Integer.toString(user.acessosTotais));
         toCadastro.setOnAction(e -> showCadastroPage());
 
-        //modificar para rodar uma função de reset antes
+        // modificar para rodar uma função de reset antes
         toLogout.setOnAction(e -> primaryStage.close());
 
-        VBox layout = new VBox(10, label, header,userAcssesCount, toCadastro, toConsulta, toLogout);
+        VBox layout = new VBox(10, label, header, userAcssesCount, toCadastro, toConsulta, toLogout);
         layout.setAlignment(javafx.geometry.Pos.CENTER);
 
         Scene scene = new Scene(layout, 400, 300);
@@ -61,25 +65,29 @@ public class CofreApp extends  Application{
         HBox campoSenha = new HBox(10, new Label("Senha: "), new TextField());
         HBox campoConfirmacaoSenha = new HBox(10, new Label("Confirmação Senha: "), new TextField());
 
-
-
-
-        Button backButton = new Button("Voltar");
-        backButton.setOnAction(e -> showHomePage(user));
-
         Button cadastrarButton = new Button("Cadastrar");
         cadastrarButton.setOnAction(e -> {
-            /*Trocar pelas funções de validação e outras para verificar estados da aplicação*/
-
+            /*
+             * Trocar pelas funções de validação e outras para verificar estados da
+             * aplicação
+             */
         });
-        HBox bottonButtons = new HBox(10,cadastrarButton, backButton);
+        HBox bottonButtons = new HBox(10, cadastrarButton);
 
-        /*Cria o objeto user*/
+        if (!isFirstAccess) {
+            Button backButton = new Button("Voltar");
+            backButton.setOnAction(e -> showHomePage(user));
+            bottonButtons.getChildren().add(backButton);
+        }
+
+        /* Cria o objeto user */
 
         Label userAcssesCount = new Label("Total de acessos do usuário: " + Integer.toString(user.acessosTotais));
         Label formulario = new Label("Formulário de cadastro:");
 
-        VBox layout = new VBox(20, titleLabel,header,userAcssesCount,formulario,campoCaminhoCertificado,campoCaminhoChavePrivada,campoFraseSecreta, campoGrupo,campoSenha,campoConfirmacaoSenha,  bottonButtons);
+        VBox layout = new VBox(20, titleLabel, header, userAcssesCount, formulario, campoCaminhoCertificado,
+                campoCaminhoChavePrivada, campoFraseSecreta, campoGrupo, campoSenha, campoConfirmacaoSenha,
+                bottonButtons);
         layout.setAlignment(javafx.geometry.Pos.CENTER);
 
         Scene scene = new Scene(layout, 500, 500);

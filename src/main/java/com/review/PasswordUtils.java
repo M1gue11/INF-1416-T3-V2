@@ -15,17 +15,12 @@ public class PasswordUtils {
     }
 
     public static String gerarHashBcrypt(String senha, byte[] salt) {
-
-        String hash = OpenBSDBCrypt.generate(senha.toCharArray(), salt, 8);
-
-
-        return hash.replace("$2a$", "$2y$");
+        return OpenBSDBCrypt.generate(senha.toCharArray(), salt, BCRYPT_COST);
     }
 
     public static boolean validarSenha(String senha, String hashArmazenado) {
         return OpenBSDBCrypt.checkPassword(
                 hashArmazenado,
-                senha.toCharArray()
-        );
+                senha.toCharArray());
     }
 }

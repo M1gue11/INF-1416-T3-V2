@@ -12,63 +12,58 @@ public class DatabaseManager {
 
     public static void initDatabase() {
         try (Connection conn = DriverManager.getConnection(DB_URL);
-             Statement stmt = conn.createStatement()) {
+                Statement stmt = conn.createStatement()) {
 
-            // Table User
+            // Tabela Chaveiro (agora criada primeiro)
             stmt.executeUpdate(
-                    "CREATE TABLE IF NOT EXISTS Usuarios (" +
+                    "CREATE TABLE IF NOT EXISTS Chaveiro (" +
+                            "KID INTEGER PRIMARY KEY AUTOINCREMENT," +
+                            "caminho_certificado TEXT NOT NULL," + // Caminho do arquivo (255 chars)
+                            "caminho_chave_privada TEXT NOT NULL," + // Caminho do arquivo (255 chars)
+                            "frase_secreta_hash TEXT NOT NULL," + // Hash da frase secreta (255 chars)
+                            "frase_secreta_salt TEXT NOT NULL)");
+
+            // Table User (agora com referência ao Chaveiro)
+            stmt.executeUpdate(
+                    "CREATE TABLE IF NOT EXISTS Usuario (" +
                             "UID INTEGER PRIMARY KEY AUTOINCREMENT," +
                             "nome TEXT NOT NULL," +
                             "email TEXT UNIQUE NOT NULL," +
                             "senha_pessoal_hash TEXT NOT NULL," +
                             "salt TEXT NOT NULL," +
-                            "grupo TEXT NOT NULL CHECK (grupo IN ('Administrador', 'Usuario'))," +  // Grupo como enum
-                            "bloqueado BOOLEAN DEFAULT FALSE)"
-            );
+                            "grupo TEXT NOT NULL CHECK (grupo IN ('Administrador', 'Usuario'))," + // Grupo como enum
+                            "bloqueado BOOLEAN DEFAULT FALSE," +
+                            "KID INTEGER NOT NULL," +
+                            "numero_acessos INTEGER NOT NULL" +
+                            "FOREIGN KEY (KID) REFERENCES Chaveiro(KID))");
 
-            // Tabela Chaveiro
+            // Tabela Grupo
             stmt.executeUpdate(
-                    "CREATE TABLE IF NOT EXISTS Chaveiro (" +
-                            "KID INTEGER PRIMARY KEY AUTOINCREMENT," +
-                            "UID INTEGER NOT NULL," +
-                            "caminho_certificado TEXT NOT NULL," +  // Caminho do arquivo (255 chars)
-                            "caminho_chave_privada TEXT NOT NULL," +  // Caminho do arquivo (255 chars)
-                            "frase_secreta_hash TEXT NOT NULL," +  // Hash da frase secreta (255 chars)
-                            "frase_secreta_salt TEXT NOT NULL," +
-                            "FOREIGN KEY (UID) REFERENCES Usuarios(UID))"
-            );
-
-            // Tabela Grupos
-            stmt.executeUpdate(
-                    "CREATE TABLE IF NOT EXISTS Grupos (" +
+                    "CREATE TABLE IF NOT EXISTS Grupo (" +
                             "GID INTEGER PRIMARY KEY AUTOINCREMENT," +
-                            "nome TEXT UNIQUE NOT NULL)"
-            );
+                            "nome TEXT UNIQUE NOT NULL)");
 
             stmt.executeUpdate(
-                    "INSERT OR IGNORE INTO Grupos (nome) VALUES " +
+                    "INSERT OR IGNORE INTO Grupo (nome) VALUES " +
                             "('Administrador'), " +
-                            "('Usuario')"
-            );
+                            "('Usuario')");
 
-            // Tabela Mensagens (logs de sistema)
+            // Tabela Mensagem (logs de sistema)
             stmt.executeUpdate(
-                    "CREATE TABLE IF NOT EXISTS Mensagens (" +
+                    "CREATE TABLE IF NOT EXISTS Mensagem (" +
                             "MID INTEGER PRIMARY KEY AUTOINCREMENT," +
                             "codigo INTEGER NOT NULL," +
-                            "conteudo TEXT NOT NULL)"
-            );
+                            "conteudo TEXT NOT NULL)");
 
-            // Tabela Registros
+            // Tabela Registro
             stmt.executeUpdate(
-                    "CREATE TABLE IF NOT EXISTS Registros (" +
+                    "CREATE TABLE IF NOT EXISTS Registro (" +
                             "RID INTEGER PRIMARY KEY AUTOINCREMENT," +
                             "UID INTEGER," +
                             "MID INTEGER NOT NULL," +
                             "data_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
-                            "FOREIGN KEY (UID) REFERENCES Usuarios(UID)," +
-                            "FOREIGN KEY (MID) REFERENCES Mensagens(MID))"
-            );
+                            "FOREIGN KEY (UID) REFERENCES Usuario(UID)," +
+                            "FOREIGN KEY (MID) REFERENCES Mensagem(MID))");
 
         } catch (SQLException e) {
             System.err.println("Erro ao criar banco de dados: " + e.getMessage());
@@ -82,47 +77,61 @@ public class DatabaseManager {
             String grupo,
             String caminhoCertificado,
             String caminhoChavePrivada,
-            String fraseSecreta
-    ) {
-        String sqlUsuario = "INSERT INTO Usuarios (nome, email, senha_pessoal_hash, salt, grupo) VALUES (?, ?, ?, ?, ?)";
-        String sqlChaveiro = "INSERT INTO Chaveiro (UID, caminho_certificado, caminho_chave_privada, frase_secreta_hash, frase_secreta_salt) VALUES (?, ?, ?, ?, ?)";
+            String fraseSecreta) {
+        String sqlChaveiro = "INSERT INTO Chaveiro (caminho_certificado, caminho_chave_privada, frase_secreta_hash, frase_secreta_salt) VALUES (?, ?, ?, ?)";
+        String sqlUsuario = "INSERT INTO Usuario (nome, email, senha_pessoal_hash, salt, grupo, KID, numero_acessos) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
             conn.setAutoCommit(false);
 
-            try (PreparedStatement pstmtUsuario = conn.prepareStatement(sqlUsuario, Statement.RETURN_GENERATED_KEYS)) {
-                byte[] salt = getRandomSalt();
-                String senhaHash = gerarHashBcrypt(senhaPessoal, salt);
-
-                pstmtUsuario.setString(1, nome);
-                pstmtUsuario.setString(2, email);
-                pstmtUsuario.setString(3, senhaHash);
-                pstmtUsuario.setString(4, Arrays.toString(salt));
-                pstmtUsuario.setString(5, grupo);
-                pstmtUsuario.executeUpdate();
-
-                ResultSet rs = pstmtUsuario.getGeneratedKeys();
-                if (!rs.next()) {
-                    conn.rollback();
-                    return -1;
-                }
-                int UID = rs.getInt(1);
-
-                // chaveiro referente ao usuário
-                try (PreparedStatement pstmtChaveiro = conn.prepareStatement(sqlChaveiro)) {
+            try {
+                int KID;
+                try (PreparedStatement pstmtChaveiro = conn.prepareStatement(sqlChaveiro,
+                        Statement.RETURN_GENERATED_KEYS)) {
                     byte[] fraseSalt = getRandomSalt();
                     String fraseHash = gerarHashBcrypt(fraseSecreta, fraseSalt);
 
-                    pstmtChaveiro.setInt(1, UID);
-                    pstmtChaveiro.setString(2, caminhoCertificado);
-                    pstmtChaveiro.setString(3, caminhoChavePrivada);
-                    pstmtChaveiro.setString(4, fraseHash);
-                    pstmtChaveiro.setString(5, Arrays.toString(fraseSalt));
+                    pstmtChaveiro.setString(1, caminhoCertificado);
+                    pstmtChaveiro.setString(2, caminhoChavePrivada);
+                    pstmtChaveiro.setString(3, fraseHash);
+                    pstmtChaveiro.setString(4, Arrays.toString(fraseSalt));
                     pstmtChaveiro.executeUpdate();
+
+                    ResultSet rs = pstmtChaveiro.getGeneratedKeys();
+                    if (!rs.next()) {
+                        conn.rollback();
+                        return -1;
+                    }
+                    KID = rs.getInt(1);
                 }
 
-                conn.commit();
-                return UID;
+                try (PreparedStatement pstmtUsuario = conn.prepareStatement(sqlUsuario,
+                        Statement.RETURN_GENERATED_KEYS)) {
+                    byte[] salt = getRandomSalt();
+                    String senhaHash = gerarHashBcrypt(senhaPessoal, salt);
+                    int numero_acessos = 0;
+                    pstmtUsuario.setString(1, nome);
+                    pstmtUsuario.setString(2, email);
+                    pstmtUsuario.setString(3, senhaHash);
+                    pstmtUsuario.setString(4, Arrays.toString(salt));
+                    pstmtUsuario.setString(5, grupo);
+                    pstmtUsuario.setInt(6, KID);
+                    pstmtUsuario.setInt(7, numero_acessos);
+                    pstmtUsuario.executeUpdate();
+
+                    ResultSet rs = pstmtUsuario.getGeneratedKeys();
+                    if (!rs.next()) {
+                        conn.rollback();
+                        return -1;
+                    }
+                    int UID = rs.getInt(1);
+
+                    conn.commit();
+                    return UID;
+                }
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
             }
         } catch (SQLException e) {
             System.err.println("Erro ao cadastrar usuário: " + e.getMessage());
@@ -130,10 +139,25 @@ public class DatabaseManager {
         }
     }
 
-    public static int buscarIdGrupo(String nomeGrupo) {
-        String sql = "SELECT GID FROM Grupos WHERE nome = ?";
+    public static int getNumberOfUsers() {
+        String sql = "SELECT COUNT(*) AS total FROM Usuario";
         try (Connection conn = DriverManager.getConnection(DB_URL);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
+
+            if (rs.next()) {
+                return rs.getInt("total");
+            }
+        } catch (SQLException e) {
+            System.err.println("Erro ao contar usuários: " + e.getMessage());
+        }
+        return -1;
+    }
+
+    public static int buscarIdGrupo(String nomeGrupo) {
+        String sql = "SELECT GID FROM Grupo WHERE nome = ?";
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, nomeGrupo);
             ResultSet rs = pstmt.executeQuery();
@@ -149,9 +173,9 @@ public class DatabaseManager {
     }
 
     public static int inserirRegistro(Optional<Integer> uid, int mid) {
-        String sql = "INSERT INTO Registros (UID, MID) VALUES (?, ?)";
+        String sql = "INSERT INTO Registro (UID, MID) VALUES (?, ?)";
         try (Connection conn = DriverManager.getConnection(DB_URL);
-             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             if (uid.isPresent()) {
                 pstmt.setInt(1, uid.get());
@@ -171,8 +195,6 @@ public class DatabaseManager {
         }
         return -1;
     }
-
-
 
     private static String getMessageByMessageCode(int codigo, Optional<String> arqName, Optional<String> loginName) {
         switch (codigo) {
@@ -247,7 +269,8 @@ public class DatabaseManager {
             case 6006:
                 return "Chave privada verificada negativamente para " + loginName.get() + "(frase secreta inválida).";
             case 6007:
-                return "Chave privada verificada negativamente para " + loginName.get() + "(assinatura digital inválida).";
+                return "Chave privada verificada negativamente para " + loginName.get()
+                        + "(assinatura digital inválida).";
             case 6008:
                 return "Confirmação de dados aceita por " + loginName.get() + ".";
             case 6009:
@@ -265,35 +288,39 @@ public class DatabaseManager {
             case 7005:
                 return "Arquivo de índice decriptado com sucesso para " + loginName.get() + ".";
             case 7006:
-                return "Arquivo de índice verificado (integridade e autenticidade) com sucesso para " + loginName.get() + ".";
+                return "Arquivo de índice verificado (integridade e autenticidade) com sucesso para " + loginName.get()
+                        + ".";
             case 7007:
                 return "Falha na decriptação do arquivo de índice para " + loginName.get() + ".";
             case 7008:
-                return "Falha na verificação (integridade e autenticidade) do arquivo de índice para " + loginName.get() + ".";
+                return "Falha na verificação (integridade e autenticidade) do arquivo de índice para " + loginName.get()
+                        + ".";
             case 7009:
                 return "Lista de arquivos presentes no índice apresentada para " + loginName.get() + ".";
             case 7010:
-                return "Arquivo " + arqName.get() +" selecionado por " +loginName.get() + " para decriptação.";
+                return "Arquivo " + arqName.get() + " selecionado por " + loginName.get() + " para decriptação.";
             case 7011:
-                return "Acesso permitido ao arquivo " + arqName.get() +" para " + loginName.get() + ".";
+                return "Acesso permitido ao arquivo " + arqName.get() + " para " + loginName.get() + ".";
             case 7012:
-                return "Acesso negado ao arquivo " + arqName.get() +" para " + loginName.get() + ".";
+                return "Acesso negado ao arquivo " + arqName.get() + " para " + loginName.get() + ".";
             case 7013:
-                return "Arquivo " + arqName.get() +" decriptado com sucesso para " +loginName.get() + ".";
+                return "Arquivo " + arqName.get() + " decriptado com sucesso para " + loginName.get() + ".";
             case 7014:
-                return "Arquivo " + arqName.get() +" verificado (integridade e autenticidade) com sucesso para " +loginName.get() + ".";
+                return "Arquivo " + arqName.get() + " verificado (integridade e autenticidade) com sucesso para "
+                        + loginName.get() + ".";
             case 7015:
-                return "Falha na decriptação do arquivo " + arqName.get() +" para " +loginName.get() + ".";
+                return "Falha na decriptação do arquivo " + arqName.get() + " para " + loginName.get() + ".";
             case 7016:
-                return "Falha na verificação (integridade e autenticidade) do arquivo " + arqName.get() +" para " +loginName.get() + ".";
+                return "Falha na verificação (integridade e autenticidade) do arquivo " + arqName.get() + " para "
+                        + loginName.get() + ".";
             case 8001:
-                return "Tela de saída apresentada para " +loginName.get() + ".";
+                return "Tela de saída apresentada para " + loginName.get() + ".";
             case 8002:
-                return "Botão encerrar sessão pressionado por " +loginName.get() + ".";
+                return "Botão encerrar sessão pressionado por " + loginName.get() + ".";
             case 8003:
-                return "Botão encerrar sistema pressionado por  "  +loginName.get() + ".";
+                return "Botão encerrar sistema pressionado por  " + loginName.get() + ".";
             case 8004:
-                return "Botão voltar de sair para o menu principal pressionado por " +loginName.get() + ".";
+                return "Botão voltar de sair para o menu principal pressionado por " + loginName.get() + ".";
 
             default:
                 System.err.println("codigo de mensagem desconhecido: " + codigo);
@@ -303,4 +330,3 @@ public class DatabaseManager {
     }
 
 }
-
