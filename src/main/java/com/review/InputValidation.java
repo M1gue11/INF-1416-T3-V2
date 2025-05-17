@@ -48,6 +48,9 @@ public class InputValidation {
     public static boolean isUserValidPhrase(String phrase) {
         boolean isOk = isValidPhrase(phrase);
         /*conferir com a decode da chave privada mais a assinatura do array de 8192bytes*/
+        if(isOk){
+
+        }
         return isOk;
     }
 }
