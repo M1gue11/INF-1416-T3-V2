@@ -20,7 +20,7 @@ public class DatabaseManager {
                             "UID INTEGER PRIMARY KEY AUTOINCREMENT," +
                             "nome TEXT NOT NULL," +
                             "email TEXT UNIQUE NOT NULL," +
-                            "senha_pessoal_hash TEXT NOT NULL," +  // Hash da senha de 10 caracteres
+                            "senha_pessoal_hash TEXT NOT NULL," +
                             "salt TEXT NOT NULL," +
                             "grupo TEXT NOT NULL CHECK (grupo IN ('Administrador', 'Usuario'))," +  // Grupo como enum
                             "bloqueado BOOLEAN DEFAULT FALSE)"

@@ -43,7 +43,7 @@ public class CofreApp extends  Application{
         //modificar para rodar uma função de reset antes
         toLogout.setOnAction(e -> primaryStage.close());
 
-        VBox layout = new VBox(10, label, header,userAcssesCount, toCadastro, toConsulta,toLogout);
+        VBox layout = new VBox(10, label, header,userAcssesCount, toCadastro, toConsulta, toLogout);
         layout.setAlignment(javafx.geometry.Pos.CENTER);
 
         Scene scene = new Scene(layout, 400, 300);
@@ -54,13 +54,14 @@ public class CofreApp extends  Application{
         Label titleLabel = new Label("Cadastro");
         // Add more components as needed
         VBox header = new HeaderComponent(user);
-        HBox campoNome = new HBox(10, new Label("Nome: "), new TextField());
-        HBox campoLogin = new HBox(10, new Label("Login: "), new TextField());
-        HBox campoSenha = new HBox(10, new Label("Senha: "), new TextField());
-        HBox campoGrupo = new HBox(10, new Label("Grupo: "), new TextField());
-        HBox campoConfirmacaoSenha = new HBox(10, new Label("Confirmação Senha: "), new TextField());
-        HBox campoCaminhoChavePrivada = new HBox(10, new Label("Caminho da chave privada: "), new TextField());
         HBox campoCaminhoCertificado = new HBox(10, new Label("Caminho do certificado: "), new TextField());
+        HBox campoCaminhoChavePrivada = new HBox(10, new Label("Caminho da chave privada: "), new TextField());
+        HBox campoFraseSecreta = new HBox(10, new Label("Frase secreta: "), new TextField());
+        HBox campoGrupo = new HBox(10, new Label("Grupo: "), new TextField());
+        HBox campoSenha = new HBox(10, new Label("Senha: "), new TextField());
+        HBox campoConfirmacaoSenha = new HBox(10, new Label("Confirmação Senha: "), new TextField());
+
+
 
 
         Button backButton = new Button("Voltar");
@@ -69,9 +70,7 @@ public class CofreApp extends  Application{
         Button cadastrarButton = new Button("Cadastrar");
         cadastrarButton.setOnAction(e -> {
             /*Trocar pelas funções de validação e outras para verificar estados da aplicação*/
-            user.nome = ((TextField) campoNome.getChildren().get(1)).getText();
-            user.login = ((TextField) campoLogin.getChildren().get(1)).getText();
-            user.grupo = ((TextField) campoGrupo.getChildren().get(1)).getText();
+
         });
         HBox bottonButtons = new HBox(10,cadastrarButton, backButton);
 
@@ -80,10 +79,10 @@ public class CofreApp extends  Application{
         Label userAcssesCount = new Label("Total de acessos do usuário: " + Integer.toString(user.acessosTotais));
         Label formulario = new Label("Formulário de cadastro:");
 
-        VBox layout = new VBox(20, titleLabel,header,userAcssesCount,formulario,campoNome,campoLogin,campoGrupo,campoSenha,campoConfirmacaoSenha,campoCaminhoChavePrivada,campoCaminhoCertificado,  bottonButtons);
+        VBox layout = new VBox(20, titleLabel,header,userAcssesCount,formulario,campoCaminhoCertificado,campoCaminhoChavePrivada,campoFraseSecreta, campoGrupo,campoSenha,campoConfirmacaoSenha,  bottonButtons);
         layout.setAlignment(javafx.geometry.Pos.CENTER);
 
-        Scene scene = new Scene(layout, 600, 600);
+        Scene scene = new Scene(layout, 500, 500);
         primaryStage.setScene(scene);
     }
 }
