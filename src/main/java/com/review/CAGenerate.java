@@ -1,5 +1,6 @@
 package com.review;
 
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -132,10 +133,12 @@ public class CAGenerate {
      * @throws IOException Se ocorrer um erro de I/O ao escrever o arquivo.
      */
     public void savePrivateKeyToFile(PrivateKey privateKey, String filePath) throws IOException {
-        try (JcaPEMWriter pemWriter = new JcaPEMWriter(new FileWriter(filePath))) {
-            pemWriter.writeObject(privateKey);
+        try (FileOutputStream fos = new FileOutputStream(filePath)) {
+            byte[] encoded = privateKey.getEncoded();
+            fos.write(encoded);
+            fos.flush();
         }
-        System.out.println("Chave privada salva em: " + filePath);
+        System.out.println("Chave privada salva em formato binário em: " + filePath);
     }
 
     /**
