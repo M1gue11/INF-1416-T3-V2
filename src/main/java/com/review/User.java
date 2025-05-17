@@ -6,19 +6,23 @@ public class User {
     public String nome;
     public String grupo;
     public boolean bloqueado;
+    public Integer acessosTotais;
+    public String token;
+    public String caminhoCertificado;
 
     public void fetchData() {
 
     }
 
-    /*
-    * This function exist just for tests purpose*/
     public void fetchDefault(){
-        login = "admin";
-        password = "PASSWORD";
-        nome = "Administrador";
-        grupo = "Administrador";
+        login = "none";
+        password = "none";
+        nome = "none";
+        grupo = "none";
         bloqueado = false;
+        acessosTotais = 0;
+        token = "none";
+        caminhoCertificado = "none/none";
     }
 
 }
