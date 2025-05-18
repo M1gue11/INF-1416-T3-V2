@@ -3,7 +3,10 @@ package com.review.view;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
+import com.review.ArvoreSenha;
+import com.review.DatabaseManager;
 import com.review.ExecutionPipeline;
+import com.review.KeyManager;
 import com.review.RetornoCadastro;
 import com.review.TOTP;
 import com.review.User;
@@ -176,6 +179,8 @@ public class CofreApp extends Application {
             bottonButtons.getChildren().add(backButton);
         }
 
+        /* Cria o objeto user */
+
         Label userAcssesCount = new Label("Total de acessos do usuário: " + Integer.toString(user.acessosTotais));
         Label formulario = new Label("Formulário de cadastro:");
 
@@ -198,7 +203,7 @@ public class CofreApp extends Application {
             String fraseSecreta = ((TextField) campoFraseSecreta.getChildren().get(1)).getText();
             boolean isOk = pipeline.admPassphraseValidation(fraseSecreta);
             if (isOk) {
-                pipeline.setPassphrase(fraseSecreta);
+                // pipeline.setPassphrase(fraseSecreta);
                 showLoginPage();
             } else {
                 Alert a = new Alert(Alert.AlertType.ERROR);
@@ -225,6 +230,10 @@ public class CofreApp extends Application {
     }
 
     private void showLoginPage() {
+        List<Integer> botoesPressionados = new java.util.ArrayList<>();
+        List<Integer> valores = new java.util.ArrayList<>();
+        ArvoreSenha arvore = new ArvoreSenha();
+
         Label titleLabel = new Label("Login");
 
         HBox campoLogin = new HBox(10, new Label("Login: "), new TextField());
@@ -235,9 +244,6 @@ public class CofreApp extends Application {
         TextField senhaDisplay = new TextField();
         senhaDisplay.setEditable(false);
 
-        List<Integer> botoesPressionados = new java.util.ArrayList<>();
-
-        List<Integer> valores = new java.util.ArrayList<>();
         for (int i = 0; i < 10; i++) {
             valores.add(i);
         }
@@ -250,17 +256,26 @@ public class CofreApp extends Application {
 
         for (int i = 0; i < 5; i++) {
             final int indiceButton = i;
-            final int valor1 = valores.get(i * 2);
-            final int valor2 = valores.get(i * 2 + 1);
+            Button botao = new Button();
 
-            valoresPorBotao.put(indiceButton, new int[] { valor1, valor2 });
-
-            Button botao = new Button(valor1 + "-" + valor2);
+            atualizarTextoButao(botao, valores, i);
 
             botao.setOnAction(e -> {
                 botoesPressionados.add(indiceButton);
+                final int valor1 = valores.get(indiceButton * 2);
+                final int valor2 = valores.get(indiceButton * 2 + 1);
+
+                arvore.inserirOpcao(indiceButton, valor1, valor2);
 
                 senhaDisplay.setText(senhaDisplay.getText() + "*");
+
+                // Agora, após pressionar o botão, embaralhamos novamente os valores
+                java.util.Collections.shuffle(valores);
+
+                // Atualizamos o texto de todos os botões com os novos valores
+                for (int j = 0; j < botoesSenha.size(); j++) {
+                    atualizarTextoButao(botoesSenha.get(j), valores, j);
+                }
             });
 
             botoesSenha.add(botao);
@@ -271,6 +286,12 @@ public class CofreApp extends Application {
         limparSenha.setOnAction(e -> {
             botoesPressionados.clear();
             senhaDisplay.setText("");
+            arvore.resetarArvore();
+
+            java.util.Collections.shuffle(valores);
+            for (int j = 0; j < botoesSenha.size(); j++) {
+                atualizarTextoButao(botoesSenha.get(j), valores, j);
+            }
         });
         botoesContainer.getChildren().add(limparSenha);
 
@@ -279,14 +300,16 @@ public class CofreApp extends Application {
             String login = ((TextField) campoLogin.getChildren().get(1)).getText();
             String fraseSecreta = ((TextField) campoFraseSecreta.getChildren().get(1)).getText();
 
-            // TODO Verificar se a senha é válida - teste atual
-            String senhaReal = "1234";
-
-            if (verificarSenha(senhaReal, botoesPressionados, valoresPorBotao)) {
-                System.out.println("Login bem-sucedido!");
-            } else {
-                System.out.println("Senha inválida!");
+            List<String> bago = arvore.gerarSequenciasNumericas();
+            for (String b : bago) {
+                if (KeyManager.validarSenha(b, DatabaseManager.getPasswordByLogin(login))) {
+                    // Todo definir funcionalidade correta
+                    System.out.println(b);
+                    System.out.println("Resultado encontrado!");
+                    continue;
+                }
             }
+
         });
         Button cadastroButton = new Button("Cadastrar");
         cadastroButton.setOnAction(e -> {
@@ -309,36 +332,10 @@ public class CofreApp extends Application {
         primaryStage.setScene(scene);
     }
 
-    private boolean verificarRecursivo(String senhaReal, int posicao, List<Integer> botoesPressionados,
-            java.util.Map<Integer, int[]> valoresPorBotao, String senhaAtual) {
-        if (posicao == botoesPressionados.size()) {
-            return senhaAtual.equals(senhaReal);
-        }
-
-        int botao = botoesPressionados.get(posicao);
-
-        int[] valores = valoresPorBotao.get(botao);
-
-        // Tentar com o primeiro valor
-        if (verificarRecursivo(senhaReal, posicao + 1, botoesPressionados, valoresPorBotao,
-                senhaAtual + valores[0])) {
-            return true;
-        }
-
-        // Tentar com o segundo valor
-        return verificarRecursivo(senhaReal, posicao + 1, botoesPressionados, valoresPorBotao,
-                senhaAtual + valores[1]);
-    }
-
-    private boolean verificarSenha(String senhaReal, List<Integer> botoesPressionados,
-            java.util.Map<Integer, int[]> valoresPorBotao) {
-        // Verificar se a quantidade de botões pressionados corresponde ao tamanho da
-        // senha
-        if (botoesPressionados.size() != senhaReal.length()) {
-            return false;
-        }
-
-        // Lista de todas as possíveis combinações de senha
-        return verificarRecursivo(senhaReal, 0, botoesPressionados, valoresPorBotao, "");
+    // Método auxiliar para atualizar o texto dos botões
+    private void atualizarTextoButao(Button botao, List<Integer> valores, int indice) {
+        final int valor1 = valores.get(indice * 2);
+        final int valor2 = valores.get(indice * 2 + 1);
+        botao.setText(valor1 + "-" + valor2);
     }
 }
