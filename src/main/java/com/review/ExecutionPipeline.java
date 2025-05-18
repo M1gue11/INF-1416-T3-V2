@@ -21,7 +21,12 @@ public class ExecutionPipeline {
         return DatabaseManager.getNumberOfUsers() == 0;
     }
 
-    public void login() {
+    public void login(String email, String passphrase, String senha) {
+        // var cert = PrivateKeyManager.loadCertificateFromFile(email);
+    }
+
+    public boolean admPassphraseValidation(String passphrase) {
+        return true;
     }
 
     public int cadastro(String caminhoCert, String caminhoPk, String fraseSec,

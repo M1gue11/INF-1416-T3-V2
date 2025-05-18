@@ -60,9 +60,16 @@ public class KeyManager {
     }
 
     public static boolean validarSenha(String senha, String hashArmazenado) {
-        return OpenBSDBCrypt.checkPassword(
-                hashArmazenado,
-                senha.toCharArray());
+        if (hashArmazenado == null) {
+            System.err.println("Invalid or null hash provided for password validation.");
+            return false; // Indicate that the hash is invalid
+        }
+        try {
+            return OpenBSDBCrypt.checkPassword(hashArmazenado, senha.toCharArray());
+        } catch (IllegalArgumentException e) {
+            System.err.println("Error: The provided hash is not a valid BCrypt string. " + e.getMessage());
+            return false; // Validation failure
+        }
     }
 
     /**

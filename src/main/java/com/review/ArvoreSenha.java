@@ -122,6 +122,26 @@ public class ArvoreSenha {
 
         return sequencias;
     }
+
+    public void resetarArvore() {
+        // Limpa todos os nós (ajuda o garbage collector)
+        limparArvore(raiz);
+        // Recria a raiz vazia
+        raiz = new SenhaNode(-1, -1);
+    }
+
+    private void limparArvore(SenhaNode node) {
+        if (node == null) return;
+
+        // Primeiro limpa os filhos recursivamente
+        limparArvore(node.getEsquerda());
+        limparArvore(node.getDireita());
+
+        // Depois limpa as referências do nó atual
+        node.setEsquerda(null);
+        node.setDireita(null);
+    }
+
 }
 
 class SenhaNode {

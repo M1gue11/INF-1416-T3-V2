@@ -1,7 +1,6 @@
 package com.review.view;
 
-import com.review.ExecutionPipeline;
-import com.review.User;
+import com.review.*;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -30,7 +29,7 @@ public class CofreApp extends Application {
         if (isFirstAccess) {
             showCadastroPage();
         } else {
-            showLoginPage();
+            showPassphrasePage();
         }
 
         primaryStage.setTitle("Cofre digital");
@@ -119,7 +118,47 @@ public class CofreApp extends Application {
         primaryStage.setScene(scene);
     }
 
+    private void showPassphrasePage() {
+        Label titleLabel = new Label("Frase secreta do administrador");
+
+        HBox campoFraseSecreta = new HBox(10, new Label("Frase secreta: "), new TextField());
+
+        Button continuarButton = new Button("Validar");
+        continuarButton.setOnAction(e -> {
+            String fraseSecreta = ((TextField) campoFraseSecreta.getChildren().get(1)).getText();
+            boolean isOk = pipeline.admPassphraseValidation(fraseSecreta);
+            if (isOk) {
+                //pipeline.setPassphrase(fraseSecreta);
+                showLoginPage();
+            } else {
+                Alert a = new Alert(Alert.AlertType.ERROR);
+                a.setTitle("Cadastro");
+                a.setHeaderText("Nao foi possivel validar a frase secreta.");
+                a.setOnCloseRequest(event -> System.exit(0));
+                a.showAndWait();
+            }
+        });
+
+        Button fecharButton = new Button("Fechar");
+        fecharButton.setOnAction(e -> {
+            System.exit(0);
+        });
+
+        HBox botoes = new HBox(10, fecharButton, continuarButton);
+        botoes.setAlignment(javafx.geometry.Pos.CENTER);
+
+        VBox layout = new VBox(20, titleLabel, campoFraseSecreta, botoes);
+        layout.setAlignment(javafx.geometry.Pos.CENTER);
+
+        Scene scene = new Scene(layout, 350, 350);
+        primaryStage.setScene(scene);
+    }
+
     private void showLoginPage() {
+        List<Integer> botoesPressionados = new java.util.ArrayList<>();
+        List<Integer> valores = new java.util.ArrayList<>();
+        ArvoreSenha arvore = new ArvoreSenha();
+
         Label titleLabel = new Label("Login");
 
         HBox campoLogin = new HBox(10, new Label("Login: "), new TextField());
@@ -130,15 +169,13 @@ public class CofreApp extends Application {
         TextField senhaDisplay = new TextField();
         senhaDisplay.setEditable(false);
 
-        List<Integer> botoesPressionados = new java.util.ArrayList<>();
 
-        // Criamos uma lista inicial de valores
-        List<Integer> valores = new java.util.ArrayList<>();
         for (int i = 0; i < 10; i++) {
             valores.add(i);
         }
-        // Primeiro shuffle inicial
         java.util.Collections.shuffle(valores);
+
+        java.util.Map<Integer, int[]> valoresPorBotao = new java.util.HashMap<>();
 
         HBox botoesContainer = new HBox(10);
         List<Button> botoesSenha = new java.util.ArrayList<>();
@@ -147,11 +184,15 @@ public class CofreApp extends Application {
             final int indiceButton = i;
             Button botao = new Button();
 
-            // Inicialmente definimos o texto do botão
             atualizarTextoButao(botao, valores, i);
 
             botao.setOnAction(e -> {
                 botoesPressionados.add(indiceButton);
+                final int valor1 = valores.get(indiceButton * 2);
+                final int valor2 = valores.get(indiceButton * 2 + 1);
+
+                arvore.inserirOpcao(indiceButton, valor1, valor2);
+
                 senhaDisplay.setText(senhaDisplay.getText() + "*");
 
                 // Agora, após pressionar o botão, embaralhamos novamente os valores
@@ -171,8 +212,8 @@ public class CofreApp extends Application {
         limparSenha.setOnAction(e -> {
             botoesPressionados.clear();
             senhaDisplay.setText("");
+            arvore.resetarArvore();
 
-            // Opcionalmente, você pode fazer um novo shuffle ao limpar a senha
             java.util.Collections.shuffle(valores);
             for (int j = 0; j < botoesSenha.size(); j++) {
                 atualizarTextoButao(botoesSenha.get(j), valores, j);
@@ -182,12 +223,35 @@ public class CofreApp extends Application {
 
         Button loginButton = new Button("Entrar");
         loginButton.setOnAction(e -> {
-            // TODO Login aqui
+            String login = ((TextField) campoLogin.getChildren().get(1)).getText();
+            String fraseSecreta = ((TextField) campoFraseSecreta.getChildren().get(1)).getText();
+
+            List<String> bago = arvore.gerarSequenciasNumericas();
+            for (String b : bago) {
+                if(KeyManager.validarSenha(b, DatabaseManager.getPasswordByLogin(login))){
+                    // Todo definir funcionalidade correta
+                    System.out.println(b);
+                    System.out.println("Resultado encontrado!");
+                    continue;
+                }
+            }
+
+        });
+        Button cadastroButton = new Button("Cadastrar");
+        cadastroButton.setOnAction(e -> {
+            showCadastroPage();
+        });
+        Button encerrarButton = new Button("Encerrar");
+        encerrarButton.setOnAction(e -> {
+            System.exit(0);
         });
 
         HBox campoSenha = new HBox(10, senhaLabel, senhaDisplay);
+        HBox buttonContainer = new HBox(10, encerrarButton, cadastroButton, loginButton);
+        buttonContainer.setAlignment(javafx.geometry.Pos.CENTER);
 
-        VBox layout = new VBox(20, titleLabel, campoLogin, campoFraseSecreta, campoSenha, botoesContainer, loginButton);
+        VBox layout = new VBox(20, titleLabel, campoLogin, campoFraseSecreta, campoSenha,
+                botoesContainer, buttonContainer);
         layout.setAlignment(javafx.geometry.Pos.CENTER);
 
         Scene scene = new Scene(layout, 350, 350);
