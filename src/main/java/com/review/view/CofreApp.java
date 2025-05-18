@@ -132,30 +132,35 @@ public class CofreApp extends Application {
 
         List<Integer> botoesPressionados = new java.util.ArrayList<>();
 
+        // Criamos uma lista inicial de valores
         List<Integer> valores = new java.util.ArrayList<>();
         for (int i = 0; i < 10; i++) {
             valores.add(i);
         }
+        // Primeiro shuffle inicial
         java.util.Collections.shuffle(valores);
-
-        java.util.Map<Integer, int[]> valoresPorBotao = new java.util.HashMap<>();
 
         HBox botoesContainer = new HBox(10);
         List<Button> botoesSenha = new java.util.ArrayList<>();
 
         for (int i = 0; i < 5; i++) {
             final int indiceButton = i;
-            final int valor1 = valores.get(i * 2);
-            final int valor2 = valores.get(i * 2 + 1);
+            Button botao = new Button();
 
-            valoresPorBotao.put(indiceButton, new int[]{valor1, valor2});
-
-            Button botao = new Button(valor1 + "-" + valor2);
+            // Inicialmente definimos o texto do botão
+            atualizarTextoButao(botao, valores, i);
 
             botao.setOnAction(e -> {
                 botoesPressionados.add(indiceButton);
-
                 senhaDisplay.setText(senhaDisplay.getText() + "*");
+
+                // Agora, após pressionar o botão, embaralhamos novamente os valores
+                java.util.Collections.shuffle(valores);
+
+                // Atualizamos o texto de todos os botões com os novos valores
+                for (int j = 0; j < botoesSenha.size(); j++) {
+                    atualizarTextoButao(botoesSenha.get(j), valores, j);
+                }
             });
 
             botoesSenha.add(botao);
@@ -166,23 +171,18 @@ public class CofreApp extends Application {
         limparSenha.setOnAction(e -> {
             botoesPressionados.clear();
             senhaDisplay.setText("");
+
+            // Opcionalmente, você pode fazer um novo shuffle ao limpar a senha
+            java.util.Collections.shuffle(valores);
+            for (int j = 0; j < botoesSenha.size(); j++) {
+                atualizarTextoButao(botoesSenha.get(j), valores, j);
+            }
         });
         botoesContainer.getChildren().add(limparSenha);
 
         Button loginButton = new Button("Entrar");
         loginButton.setOnAction(e -> {
-            String login = ((TextField) campoLogin.getChildren().get(1)).getText();
-            String fraseSecreta = ((TextField) campoFraseSecreta.getChildren().get(1)).getText();
-
-            // TODO Verificar se a senha é válida - teste atual
-            String senhaReal = "1234";
-
-            if (verificarSenha(senhaReal, botoesPressionados, valoresPorBotao)) {
-                System.out.println("Login bem-sucedido!");
-            } else {
-                System.out.println("Senha inválida!");
-            }
-
+            // TODO Login aqui
         });
 
         HBox campoSenha = new HBox(10, senhaLabel, senhaDisplay);
@@ -194,35 +194,10 @@ public class CofreApp extends Application {
         primaryStage.setScene(scene);
     }
 
-
-    private boolean verificarRecursivo(String senhaReal, int posicao, List<Integer> botoesPressionados,
-                                       java.util.Map<Integer, int[]> valoresPorBotao, String senhaAtual) {
-        if (posicao == botoesPressionados.size()) {
-            return senhaAtual.equals(senhaReal);
-        }
-
-        int botao = botoesPressionados.get(posicao);
-
-        int[] valores = valoresPorBotao.get(botao);
-
-        // Tentar com o primeiro valor
-        if (verificarRecursivo(senhaReal, posicao + 1, botoesPressionados, valoresPorBotao,
-                senhaAtual + valores[0])) {
-            return true;
-        }
-
-        // Tentar com o segundo valor
-        return verificarRecursivo(senhaReal, posicao + 1, botoesPressionados, valoresPorBotao,
-                senhaAtual + valores[1]);
-    }
-
-    private boolean verificarSenha(String senhaReal, List<Integer> botoesPressionados, java.util.Map<Integer, int[]> valoresPorBotao) {
-        // Verificar se a quantidade de botões pressionados corresponde ao tamanho da senha
-        if (botoesPressionados.size() != senhaReal.length()) {
-            return false;
-        }
-
-        // Lista de todas as possíveis combinações de senha
-        return verificarRecursivo(senhaReal, 0, botoesPressionados, valoresPorBotao, "");
+    // Método auxiliar para atualizar o texto dos botões
+    private void atualizarTextoButao(Button botao, List<Integer> valores, int indice) {
+        final int valor1 = valores.get(indice * 2);
+        final int valor2 = valores.get(indice * 2 + 1);
+        botao.setText(valor1 + "-" + valor2);
     }
 }
