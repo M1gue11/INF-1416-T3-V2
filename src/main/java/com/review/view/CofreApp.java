@@ -30,7 +30,7 @@ public class CofreApp extends Application {
         if (isFirstAccess) {
             showCadastroPage();
         } else {
-            showLoginPage();
+            showPassphrasePage();
         }
 
         primaryStage.setTitle("Cofre digital");
@@ -119,6 +119,32 @@ public class CofreApp extends Application {
         primaryStage.setScene(scene);
     }
 
+    private void showPassphrasePage() {
+        Label titleLabel = new Label("Frase secreta do administrador");
+
+        HBox campoFraseSecreta = new HBox(10, new Label("Frase secreta: "), new TextField());
+
+        Button continuarButton = new Button("Validar");
+        continuarButton.setOnAction(e -> {
+            String fraseSecreta = ((TextField) campoFraseSecreta.getChildren().get(1)).getText();
+            // boolean isOk = pipeline.admPassphraseValidation(fraseSecreta);
+        });
+
+        Button fecharButton = new Button("Fechar");
+        fecharButton.setOnAction(e -> {
+            System.exit(0);
+        });
+
+        HBox botoes = new HBox(10, fecharButton, continuarButton);
+        botoes.setAlignment(javafx.geometry.Pos.CENTER);
+
+        VBox layout = new VBox(20, titleLabel, campoFraseSecreta, botoes);
+        layout.setAlignment(javafx.geometry.Pos.CENTER);
+
+        Scene scene = new Scene(layout, 350, 350);
+        primaryStage.setScene(scene);
+    }
+
     private void showLoginPage() {
         Label titleLabel = new Label("Login");
 
@@ -148,7 +174,7 @@ public class CofreApp extends Application {
             final int valor1 = valores.get(i * 2);
             final int valor2 = valores.get(i * 2 + 1);
 
-            valoresPorBotao.put(indiceButton, new int[]{valor1, valor2});
+            valoresPorBotao.put(indiceButton, new int[] { valor1, valor2 });
 
             Button botao = new Button(valor1 + "-" + valor2);
 
@@ -194,9 +220,8 @@ public class CofreApp extends Application {
         primaryStage.setScene(scene);
     }
 
-
     private boolean verificarRecursivo(String senhaReal, int posicao, List<Integer> botoesPressionados,
-                                       java.util.Map<Integer, int[]> valoresPorBotao, String senhaAtual) {
+            java.util.Map<Integer, int[]> valoresPorBotao, String senhaAtual) {
         if (posicao == botoesPressionados.size()) {
             return senhaAtual.equals(senhaReal);
         }
@@ -216,8 +241,10 @@ public class CofreApp extends Application {
                 senhaAtual + valores[1]);
     }
 
-    private boolean verificarSenha(String senhaReal, List<Integer> botoesPressionados, java.util.Map<Integer, int[]> valoresPorBotao) {
-        // Verificar se a quantidade de botões pressionados corresponde ao tamanho da senha
+    private boolean verificarSenha(String senhaReal, List<Integer> botoesPressionados,
+            java.util.Map<Integer, int[]> valoresPorBotao) {
+        // Verificar se a quantidade de botões pressionados corresponde ao tamanho da
+        // senha
         if (botoesPressionados.size() != senhaReal.length()) {
             return false;
         }
