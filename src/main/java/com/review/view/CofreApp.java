@@ -1,6 +1,11 @@
 package com.review.view;
 
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 import com.review.ExecutionPipeline;
+import com.review.RetornoCadastro;
+import com.review.TOTP;
 import com.review.User;
 
 import javafx.application.Application;
@@ -8,10 +13,15 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.scene.control.TextField;
+import javafx.scene.image.WritableImage;
 import javafx.scene.control.Alert;
+import java.awt.image.BufferedImage;
+import javafx.scene.image.ImageView;
+import javafx.embed.swing.SwingFXUtils;
 
 import java.util.List;
 
@@ -30,11 +40,40 @@ public class CofreApp extends Application {
         if (isFirstAccess) {
             showCadastroPage();
         } else {
-            showPassphrasePage();
+            showTOTPPage();
         }
 
         primaryStage.setTitle("Cofre digital");
         primaryStage.show();
+    }
+
+    private void showTOTPPage() {
+        Label titleLabel = new Label("Verificação de dois fatores");
+        HBox campoCodigoTotp = new HBox(10, new Label("Codigo de autenticação: "), new TextField());
+
+        Button confirmarButton = new Button("Confirmar código");
+        confirmarButton.setOnAction(e -> {
+            String codigoTotp = ((TextField) campoCodigoTotp.getChildren().get(1)).getText();
+        });
+
+        Button voltarButton = new Button("Voltar");
+        voltarButton.setOnAction(e -> {
+            showLoginPage();
+        });
+
+        Button sairButton = new Button("Sair");
+        sairButton.setOnAction(e -> {
+            System.exit(0);
+        });
+
+        HBox buttonContainer = new HBox(10, voltarButton, sairButton);
+        buttonContainer.setAlignment(javafx.geometry.Pos.CENTER);
+
+        VBox layout = new VBox(20, titleLabel, campoCodigoTotp, confirmarButton, buttonContainer);
+        layout.setAlignment(javafx.geometry.Pos.CENTER);
+
+        Scene scene = new Scene(layout, 400, 300);
+        primaryStage.setScene(scene);
     }
 
     private void showHomePage(User user) {
@@ -57,6 +96,19 @@ public class CofreApp extends Application {
         primaryStage.setScene(scene);
     }
 
+    private BufferedImage generateQRCodeImage(String text) throws Exception {
+        QRCodeWriter qrCodeWriter = new QRCodeWriter();
+        BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, 200, 200);
+
+        BufferedImage qrCodeImage = new BufferedImage(200, 200, BufferedImage.TYPE_INT_RGB);
+        for (int x = 0; x < 200; x++) {
+            for (int y = 0; y < 200; y++) {
+                qrCodeImage.setRGB(x, y, bitMatrix.get(x, y) ? 0xFF000000 : 0xFFFFFFFF); // Preto e branco
+            }
+        }
+        return qrCodeImage;
+    }
+
     private void showCadastroPage() {
         Label titleLabel = new Label("Cadastro");
         // Add more components as needed
@@ -76,25 +128,44 @@ public class CofreApp extends Application {
             String grupo = ((TextField) campoGrupo.getChildren().get(1)).getText();
             String senha = ((TextField) campoSenha.getChildren().get(1)).getText();
             String confirmacaoSenha = ((TextField) campoConfirmacaoSenha.getChildren().get(1)).getText();
-            int uid = pipeline.cadastro(caminhoCertificado, caminhoChavePrivada, fraseSecreta, grupo, senha,
+            RetornoCadastro retCadastro = pipeline.cadastro(caminhoCertificado, caminhoChavePrivada,
+                    fraseSecreta, grupo, senha,
                     confirmacaoSenha);
+            String urlChave = TOTP.getGoogleAuthUrl(retCadastro.email, retCadastro.chaveB32);
+
+            Alert qrCode = new Alert(Alert.AlertType.INFORMATION);
+            try {
+                BufferedImage qrCodeImage = generateQRCodeImage(urlChave);
+                WritableImage qrCodeWritableImage = SwingFXUtils.toFXImage(qrCodeImage, null);
+                ImageView qrCodeView = new ImageView(qrCodeWritableImage);
+
+                StackPane layout = new StackPane(qrCodeView);
+                Scene scene = new Scene(layout, 200, 200);
+
+                Stage qrCodeStage = new Stage();
+                qrCodeStage.setTitle("Chave B32 QR Code");
+                qrCodeStage.setScene(scene);
+                qrCodeStage.show();
+
+                qrCode.setOnCloseRequest(exit -> System.exit(0));
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                qrCode.setContentText("Erro ao gerar QR Code.");
+                qrCode.setOnCloseRequest(exit -> System.exit(0));
+            }
+
             String alertMessage;
-            if (uid == -1) {
+            if (retCadastro.uid == -1) {
                 // TODO: log
                 alertMessage = "Erro ao cadastrar usuário";
             } else {
                 // TODO: log
                 alertMessage = "Usuário cadastrado com sucesso";
             }
-
             Alert a = new Alert(Alert.AlertType.INFORMATION);
             a.setTitle("Cadastro");
             a.setHeaderText(alertMessage);
-            if (uid == -1) {
-                a.setOnCloseRequest(exit -> exit.consume());
-            } else {
-                a.setOnCloseRequest(exit -> System.exit(0));
-            }
+            a.setOnCloseRequest(exit -> System.exit(0));
             a.showAndWait();
         });
         HBox bottonButtons = new HBox(10, cadastrarButton);

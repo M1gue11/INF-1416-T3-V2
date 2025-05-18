@@ -77,6 +77,33 @@ public class PrivateKeyManager {
         System.out.println("Chave privada criptografada e salva em: " + encryptedOutputFilePath);
     }
 
+    public static String encryptContentWithPhrase(String content, String passphrase) throws Exception {
+
+        SecretKey aesKey = deriveAesKeyFromPassphrase(passphrase);
+        byte[] contentBytes = content.getBytes(StandardCharsets.UTF_8);
+
+        Cipher cipher = Cipher.getInstance(AES_TRANSFORMATION);
+        cipher.init(Cipher.ENCRYPT_MODE, aesKey);
+        byte[] encryptedContentBytes = cipher.doFinal(contentBytes);
+
+        Base32 b32 = new Base32(Base32.Alphabet.BASE32, true, false);
+        String encryptedContentB32 = b32.toString(encryptedContentBytes);
+        return encryptedContentB32;
+    }
+
+    public static String decryptContentWithPhrase(String encryptedContentB32, String passphrase) throws Exception {
+
+        SecretKey aesKey = deriveAesKeyFromPassphrase(passphrase);
+        Base32 b32 = new Base32(Base32.Alphabet.BASE32, true, false);
+        byte[] encryptedContentBytes = b32.fromString(encryptedContentB32);
+
+        Cipher cipher = Cipher.getInstance(AES_TRANSFORMATION);
+        cipher.init(Cipher.DECRYPT_MODE, aesKey);
+        byte[] decryptedContentBytes = cipher.doFinal(encryptedContentBytes);
+
+        return new String(decryptedContentBytes, StandardCharsets.UTF_8);
+    }
+
     /**
      * Descriptografa um arquivo de chave privada previamente criptografado.
      *
@@ -117,14 +144,14 @@ public class PrivateKeyManager {
         return decryptedPrivateKeyBytes;
     }
 
-    public static PrivateKey loadPrivateKeyFromBytes(byte[] pkBytes, String keyAlgorithm)
+    public static PrivateKey loadPkFromBytes(byte[] pkBytes, String keyAlgorithm)
             throws NoSuchAlgorithmException, InvalidKeySpecException {
         PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(pkBytes);
         KeyFactory keyFactory = KeyFactory.getInstance(keyAlgorithm);
         return keyFactory.generatePrivate(keySpec);
     }
 
-    public static X509Certificate loadCertificateFromFile(String certificateFilePath) throws Exception {
+    public static X509Certificate loadCaFromFile(String certificateFilePath) throws Exception {
         CertificateFactory cf = CertificateFactory.getInstance("X.509");
         byte[] certBytes = Files.readAllBytes(Paths.get(certificateFilePath));
 
@@ -144,7 +171,7 @@ public class PrivateKeyManager {
             X509Certificate certificate,
             String keyAlgorithm) {
         try {
-            PrivateKey privateKey = loadPrivateKeyFromBytes(decryptedPrivateKeyBytes, keyAlgorithm);
+            PrivateKey privateKey = loadPkFromBytes(decryptedPrivateKeyBytes, keyAlgorithm);
             PublicKey publicKey = certificate.getPublicKey();
             byte[] randomData = KeyManager.getRandomArr(RANDOM_DATA_SIZE_BYTES);
 

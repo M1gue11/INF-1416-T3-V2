@@ -4,6 +4,24 @@ import java.security.cert.X509Certificate;
 
 public class ExecutionPipeline {
     static ExecutionPipeline instance = null;
+    private String passphrase = null;
+
+    public void setPassphrase(String passphrase) {
+        if (passphrase == null || passphrase.isEmpty()) {
+            throw new IllegalArgumentException("Passphrase cannot be null or empty");
+        }
+        if (this.passphrase != null) {
+            throw new IllegalArgumentException("Passphrase already set");
+        }
+        this.passphrase = passphrase;
+    }
+
+    public String getPassphrase() {
+        if (this.passphrase == null) {
+            throw new IllegalStateException("Passphrase not set");
+        }
+        return this.passphrase;
+    }
 
     public static ExecutionPipeline getInstance() {
         if (instance == null) {
@@ -26,13 +44,23 @@ public class ExecutionPipeline {
     }
 
     public boolean admPassphraseValidation(String passphrase) {
-        return false;
+        try {
+            User adm = DatabaseManager.getSuperAdmin();
+            Chaveiro admChaveiro = DatabaseManager.getChaveiroByKID(adm.KID);
+            return InputValidation.pkAndCaMatchPassphrase(passphrase, admChaveiro.caminho_certificado,
+                    admChaveiro.caminho_chave_privada, true);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+
     }
 
-    public int cadastro(String caminhoCert, String caminhoPk, String fraseSec,
+    public RetornoCadastro cadastro(String caminhoCert, String caminhoPk, String fraseSec,
             String gp, String senha, String confirmacaoSenha) {
         try {
-            X509Certificate cert = PrivateKeyManager.loadCertificateFromFile(caminhoCert);
+            X509Certificate cert = PrivateKeyManager.loadCaFromFile(caminhoCert);
             String email = PrivateKeyManager.getEmailFromCA(cert);
             boolean isFormOk = InputValidation.isValidCAFilePath(caminhoCert, "certificado")
                     && InputValidation.isValidPkFilePath(caminhoPk, "chave_privada")
@@ -45,17 +73,24 @@ public class ExecutionPipeline {
             if (!isFormOk) {
                 // TODO: log
                 System.out.println("Formulário inválido");
-                return -1;
+                return new RetornoCadastro(-1, null, email);
             }
+
+            byte[] chave = KeyManager.getRandomArr(20);
+            String chaveB32 = new Base32(Base32.Alphabet.BASE32, true, false).toString(chave);
+
+            System.out.println("segredo: " + chaveB32);
+            String chaveB32Cript = PrivateKeyManager.encryptContentWithPhrase(chaveB32, senha);
 
             String senhaHash = KeyManager.gerarHashBcrypt(senha);
             String nome = PrivateKeyManager.getCommonNameFromCA(cert);
-            int uid = DatabaseManager.cadastrarUsuario(nome, email, senhaHash, gp, caminhoCert, caminhoPk);
-            return uid;
+            int uid = DatabaseManager.cadastrarUsuario(nome, email, senhaHash, gp, caminhoCert, caminhoPk,
+                    chaveB32Cript);
+            return new RetornoCadastro(uid, chaveB32, email);
 
         } catch (Exception e) {
             e.printStackTrace();
-            return -1;
+            return new RetornoCadastro(-1, null, null);
         }
     }
 }

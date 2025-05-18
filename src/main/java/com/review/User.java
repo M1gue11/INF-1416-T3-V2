@@ -10,6 +10,8 @@ public class User {
     public Integer numero_acessos;
     public Integer ultimo_bloqueio_ts;
     public Integer acessosTotais;
+    public String chave_totp_cript;
+
     public void fetchDefault() {
         UID = -1;
         nome = "none";
@@ -19,7 +21,8 @@ public class User {
         KID = -1;
         numero_acessos = 0;
         ultimo_bloqueio_ts = null;
-        acessosTotais=0;
+        acessosTotais = 0;
+        chave_totp_cript = "none";
     }
 
 }

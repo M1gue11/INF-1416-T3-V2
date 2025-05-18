@@ -3,8 +3,6 @@ package com.review;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.bouncycastle.jcajce.provider.symmetric.ARC4.Base;
-
 public class TOTP {
     private byte[] key = null;
     private long timeStepInSeconds = 30;
@@ -20,46 +18,13 @@ public class TOTP {
         }
         Base32 b32 = new Base32(Base32.Alphabet.BASE32, true, false);
         this.key = b32.fromString(base32EncodedSecret);
+
+        if (this.key == null || this.key.length == 0) {
+            throw new Exception("Failed to decode Base32 secret key or key is empty.");
+        }
         if (timeStepInSeconds > 0) {
             this.timeStepInSeconds = timeStepInSeconds;
         }
-    }
-
-    // Método auxiliar para decodificar uma string em BASE32
-    private byte[] base32Decode(String base32) throws Exception {
-        // Removendo espaços e convertendo para maiúsculas
-        base32 = base32.replaceAll("\\s+", "").toUpperCase();
-
-        // Criando mapa de valores para caracteres BASE32
-        String base32Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-
-        // Calculando o tamanho do array de bytes
-        int numBytes = base32.length() * 5 / 8;
-        byte[] result = new byte[numBytes];
-
-        int buffer = 0;
-        int bitsLeft = 0;
-        int index = 0;
-
-        for (char c : base32.toCharArray()) {
-            int value = base32Chars.indexOf(c);
-            if (value < 0) {
-                throw new Exception("Invalid character in BASE32 string: " + c);
-            }
-
-            // Adicionando 5 bits ao buffer
-            buffer <<= 5;
-            buffer |= value;
-            bitsLeft += 5;
-
-            // Se tivermos pelo menos 8 bits, podemos extrair um byte
-            if (bitsLeft >= 8) {
-                bitsLeft -= 8;
-                result[index++] = (byte) ((buffer >> bitsLeft) & 0xFF);
-            }
-        }
-
-        return result;
     }
 
     // Recebe o HASH HMAC-SHA1 e determina o código TOTP de 6 algarismos
@@ -149,5 +114,10 @@ public class TOTP {
         }
 
         return false;
+    }
+
+    public static String getGoogleAuthUrl(String email, String chaveB32) {
+        String url = String.format("otpauth://totp/Cofre Digital:%s?secret=%s", email, chaveB32);
+        return url;
     }
 }
