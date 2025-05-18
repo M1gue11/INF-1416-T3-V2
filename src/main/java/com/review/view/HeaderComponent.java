@@ -16,7 +16,7 @@ public class HeaderComponent extends VBox {
         this.setSpacing(1); // Espaçamento entre os labels
 
         // Criando os labels
-        loginLabel = new Label("Login: " + user.login);
+        loginLabel = new Label("Login: " + user.email);
         groupLabel = new Label("Grupo: " + user.grupo);
         nameLabel = new Label("Nome: " + user.nome);
 
@@ -26,7 +26,7 @@ public class HeaderComponent extends VBox {
 
     // Método para atualizar os dados do usuário
     public void updateUser(User user) {
-        loginLabel.setText("Login: " + user.login);
+        loginLabel.setText("Login: " + user.email);
         groupLabel.setText("Grupo: " + user.grupo);
         nameLabel.setText("Nome: " + user.nome);
     }
