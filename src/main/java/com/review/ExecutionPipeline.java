@@ -1,5 +1,7 @@
 package com.review;
 
+import java.security.cert.X509Certificate;
+
 public class ExecutionPipeline {
     static ExecutionPipeline instance = null;
 
@@ -15,17 +17,40 @@ public class ExecutionPipeline {
     }
 
     public boolean isFirstAccess() {
+        System.out.println(DatabaseManager.getNumberOfUsers());
         return DatabaseManager.getNumberOfUsers() == 0;
     }
 
     public void login() {
     }
 
-    public void cadastro(String caminhoCert, String caminhoPk, String fraseSec,
+    public int cadastro(String caminhoCert, String caminhoPk, String fraseSec,
             String gp, String senha, String confirmacaoSenha) {
-        // TODO: implementar validacoes
+        try {
+            X509Certificate cert = PrivateKeyManager.loadCertificateFromFile(caminhoCert);
+            String email = PrivateKeyManager.getEmailFromCA(cert);
+            boolean isFormOk = InputValidation.isValidCAFilePath(caminhoCert, "certificado")
+                    && InputValidation.isValidPkFilePath(caminhoPk, "chave_privada")
+                    // && InputValidation.isValidGroup(gp);
+                    && InputValidation.isValidPassword(senha, confirmacaoSenha)
+                    && InputValidation.isValidEmail(email)
+                    && InputValidation.pkAndCaMatchPassphrase(fraseSec, caminhoCert, caminhoPk,
+                            true);
 
-        String senhaHash = PasswordUtils.gerarHashBcrypt(senha);
+            if (!isFormOk) {
+                // TODO: log
+                System.out.println("Formulário inválido");
+                return -1;
+            }
 
+            String senhaHash = KeyManager.gerarHashBcrypt(senha);
+            String nome = PrivateKeyManager.getCommonNameFromCA(cert);
+            int uid = DatabaseManager.cadastrarUsuario(nome, email, senhaHash, gp, caminhoCert, caminhoPk);
+            return uid;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1;
+        }
     }
 }

@@ -1,28 +1,25 @@
 package com.review;
 
 public class User {
-    public String login;
-    public String password;
+    public Integer UID;
     public String nome;
+    public String email;
+    public String senha_pessoal_hash;
     public String grupo;
-    public boolean bloqueado;
+    public Integer KID;
+    public Integer numero_acessos;
+    public Integer ultimo_bloqueio_ts;
     public Integer acessosTotais;
-    public String token;
-    public String caminhoCertificado;
-
-    public void fetchData() {
-
-    }
-
-    public void fetchDefault(){
-        login = "none";
-        password = "none";
+    public void fetchDefault() {
+        UID = -1;
         nome = "none";
+        email = "none";
+        senha_pessoal_hash = "none";
         grupo = "none";
-        bloqueado = false;
-        acessosTotais = 0;
-        token = "none";
-        caminhoCertificado = "none/none";
+        KID = -1;
+        numero_acessos = 0;
+        ultimo_bloqueio_ts = null;
+        acessosTotais=0;
     }
 
 }

@@ -1,13 +1,17 @@
 package com.review;
 
 import com.review.view.CofreApp;
+
 import javafx.application.Application;
 
-// TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Main {
     public static void main(String[] args) {
         Application.launch(CofreApp.class, args);
-        // var p = ExecutionPipeline.getInstance().login();
+        String pkPath = "minha_chave_privada_ca.bin";
+        var caPath = "meu_certificado_ca.pem";
+        var sec = "1234";
+        ExecutionPipeline pipeline = ExecutionPipeline.getInstance();
+        pipeline.cadastro(caPath, pkPath, sec, "Administrador", "12345678",
+                "12345678");
     }
 }

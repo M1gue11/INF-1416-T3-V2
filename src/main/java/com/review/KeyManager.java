@@ -17,32 +17,52 @@ import java.security.cert.X509Certificate;
 import java.util.Calendar;
 import java.util.Date;
 
-import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
-
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
-public class CAGenerate {
-
+public class KeyManager {
+    private static final int BCRYPT_COST = 8;
     static {
-        // Adiciona o provider BouncyCastle dinamicamente
         if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
             Security.addProvider(new BouncyCastleProvider());
         }
     }
 
-    public CAGenerate() {
-        // Construtor
+    public static byte[] getRandomSalt() {
+        SecureRandom random = new SecureRandom();
+        byte[] salt = new byte[16];
+        random.nextBytes(salt);
+        return salt;
+    }
+
+    public static byte[] getRandomArr(int size) {
+        SecureRandom random = new SecureRandom();
+        byte[] arr = new byte[size];
+        random.nextBytes(arr);
+        return arr;
+    }
+
+    public static String gerarHashBcrypt(String senha, byte[] salt) {
+        return OpenBSDBCrypt.generate(senha.toCharArray(), salt, BCRYPT_COST);
+    }
+
+    public static String gerarHashBcrypt(String senha) {
+        byte[] salt = getRandomSalt();
+        return OpenBSDBCrypt.generate(senha.toCharArray(), salt, BCRYPT_COST);
+    }
+
+    public static boolean validarSenha(String senha, String hashArmazenado) {
+        return OpenBSDBCrypt.checkPassword(
+                hashArmazenado,
+                senha.toCharArray());
     }
 
     /**
@@ -54,7 +74,7 @@ public class CAGenerate {
      * @throws NoSuchProviderException  Se o provider BouncyCastle não for
      *                                  encontrado
      */
-    public KeyPair generateKeyPair(int keySize) throws NoSuchAlgorithmException, NoSuchProviderException {
+    public static KeyPair generateKeyPair(int keySize) throws NoSuchAlgorithmException, NoSuchProviderException {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA", BouncyCastleProvider.PROVIDER_NAME);
         keyGen.initialize(keySize, new SecureRandom());
         return keyGen.generateKeyPair();
@@ -83,9 +103,8 @@ public class CAGenerate {
         long nowMillis = System.currentTimeMillis();
         Date startDate = new Date(nowMillis);
 
-        X500Name issuerAndSubject = new X500Name(subjectDN); // Emissor e sujeito são os mesmos para autoassinado
+        X500Name issuerAndSubject = new X500Name(subjectDN);
 
-        // Número de série único para o certificado
         BigInteger serialNumber = new BigInteger(Long.toString(nowMillis));
 
         Calendar calendar = Calendar.getInstance();
@@ -93,15 +112,13 @@ public class CAGenerate {
         calendar.add(Calendar.DAY_OF_YEAR, validityDays);
         Date endDate = calendar.getTime();
 
-        // Construtor do certificado X.509 v3
         X509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(
-                issuerAndSubject, // Emissor
-                serialNumber, // Número de série
-                startDate, // Data de início da validade
-                endDate, // Data de fim da validade
-                issuerAndSubject, // Sujeito
-                publicKey // Chave pública do sujeito
-        );
+                issuerAndSubject,
+                serialNumber,
+                startDate,
+                endDate,
+                issuerAndSubject,
+                publicKey);
 
         // Assinador de conteúdo usando SHA256 com RSA
         ContentSigner contentSigner = new JcaContentSignerBuilder("SHA256WithRSA")
@@ -146,31 +163,6 @@ public class CAGenerate {
         System.out.println("Chave privada salva em formato binário em: " + filePath);
     }
 
-    public byte[] securePk(PrivateKey pk, String fraseSecreta) {
-        try {
-            KeyGenerator keyGen = KeyGenerator.getInstance("AES");
-            SecureRandom secureRandom = SecureRandom.getInstance("SHA1PRNG");
-            secureRandom.setSeed(fraseSecreta.getBytes("UTF-8"));
-            keyGen.init(256, secureRandom);
-            SecretKey secretKey = keyGen.generateKey();
-
-            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-            byte[] iv = new byte[16];
-            secureRandom.nextBytes(iv); // Preencher o iv com bytes aleatórios
-            IvParameterSpec ivspec = new IvParameterSpec(iv);
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivspec);
-            byte[] privateKeyBytes = pk.getEncoded();
-            byte[] encryptedPrivateKeyBytes = cipher.doFinal(privateKeyBytes);
-
-            return encryptedPrivateKeyBytes;
-
-        } catch (Exception e) {
-            System.err.println("Erro ao criptografar a chave privada: " + e.getMessage());
-            e.printStackTrace();
-            return null;
-        }
-    }
-
     /**
      * Método principal para gerar e salvar o certificado e a chave privada.
      * 
@@ -196,8 +188,6 @@ public class CAGenerate {
             // 1. Gerar par de chaves
             KeyPair keyPair = generateKeyPair(keySize);
 
-            // 2. Montar o Subject DN
-            // Exemplo: "CN=Test CA, OU=Security, O=MyCompany, L=City, ST=State, C=BR"
             String subjectDN = String.format("CN=%s, E=%s, OU=%s, O=%s, L=%s, ST=%s, C=%s",
                     commonName, emailAddress, orgUnit, organization, locality, stateOrProvince, country);
 
@@ -208,8 +198,11 @@ public class CAGenerate {
             saveCertificateToFile(certificate, certFilePath);
 
             // 5. Salvar chave privada em arquivo
-            securePk(keyPair.getPrivate(), passPhrase);
             savePrivateKeyToFile(keyPair.getPrivate(), keyFilePath);
+
+            // 6. Criptografar chave privada com a frase secreta
+            PrivateKeyManager.encryptPkFile(keyFilePath, keyFilePath,
+                    passPhrase);
 
             System.out.println("Certificado e chave privada gerados com sucesso.");
 
@@ -237,7 +230,6 @@ public class CAGenerate {
     }
 
     public static void generateDefaultCA() {
-        CAGenerate caGenerator = new CAGenerate();
 
         // Parâmetros para o certificado
         String commonName = "CA de Teste";
@@ -254,9 +246,10 @@ public class CAGenerate {
 
         // Nomes dos arquivos de saída
         String certFilePath = "meu_certificado_ca.pem";
-        String keyFilePath = "minha_chave_privada_ca.pem";
+        String keyFilePath = "minha_chave_privada_ca.bin";
 
-        caGenerator.generateAndSaveAssets(
+        KeyManager km = new KeyManager();
+        km.generateAndSaveAssets(
                 commonName, emailAddress, orgUnit, organization, locality, stateOrProvince, country,
                 validityDays, keySize,
                 certFilePath, keyFilePath, passPhrase);

@@ -11,6 +11,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Alert;
 
 import java.util.List;
 
@@ -26,7 +27,7 @@ public class CofreApp extends Application {
 
         // Cria a cena inicial com um user aleatorio
         user.fetchDefault();
-        if (!isFirstAccess) {
+        if (isFirstAccess) {
             showCadastroPage();
         } else {
             showLoginPage();
@@ -43,7 +44,7 @@ public class CofreApp extends Application {
         Button toConsulta = new Button("Consultar arquivos");
         Button toLogout = new Button("Logout");
 
-        Label userAcssesCount = new Label("Total de acessos do usuário: " + Integer.toString(user.acessosTotais));
+        Label userAcssesCount = new Label("Total de acessos do usuário: " + Integer.toString(user.numero_acessos));
         toCadastro.setOnAction(e -> showCadastroPage());
 
         // modificar para rodar uma função de reset antes
@@ -75,7 +76,26 @@ public class CofreApp extends Application {
             String grupo = ((TextField) campoGrupo.getChildren().get(1)).getText();
             String senha = ((TextField) campoSenha.getChildren().get(1)).getText();
             String confirmacaoSenha = ((TextField) campoConfirmacaoSenha.getChildren().get(1)).getText();
+            int uid = pipeline.cadastro(caminhoCertificado, caminhoChavePrivada, fraseSecreta, grupo, senha,
+                    confirmacaoSenha);
+            String alertMessage;
+            if (uid == -1) {
+                // TODO: log
+                alertMessage = "Erro ao cadastrar usuário";
+            } else {
+                // TODO: log
+                alertMessage = "Usuário cadastrado com sucesso";
+            }
 
+            Alert a = new Alert(Alert.AlertType.INFORMATION);
+            a.setTitle("Cadastro");
+            a.setHeaderText(alertMessage);
+            if (uid == -1) {
+                a.setOnCloseRequest(exit -> exit.consume());
+            } else {
+                a.setOnCloseRequest(exit -> System.exit(0));
+            }
+            a.showAndWait();
         });
         HBox bottonButtons = new HBox(10, cadastrarButton);
 
@@ -170,7 +190,7 @@ public class CofreApp extends Application {
         VBox layout = new VBox(20, titleLabel, campoLogin, campoFraseSecreta, campoSenha, botoesContainer, loginButton);
         layout.setAlignment(javafx.geometry.Pos.CENTER);
 
-        Scene scene = new Scene(layout, 500, 400);
+        Scene scene = new Scene(layout, 350, 350);
         primaryStage.setScene(scene);
     }
 
