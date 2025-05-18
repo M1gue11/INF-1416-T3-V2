@@ -105,8 +105,6 @@ public class CofreApp extends Application {
             bottonButtons.getChildren().add(backButton);
         }
 
-        /* Cria o objeto user */
-
         Label userAcssesCount = new Label("Total de acessos do usuário: " + Integer.toString(user.acessosTotais));
         Label formulario = new Label("Formulário de cadastro:");
 
@@ -127,7 +125,17 @@ public class CofreApp extends Application {
         Button continuarButton = new Button("Validar");
         continuarButton.setOnAction(e -> {
             String fraseSecreta = ((TextField) campoFraseSecreta.getChildren().get(1)).getText();
-            // boolean isOk = pipeline.admPassphraseValidation(fraseSecreta);
+            boolean isOk = pipeline.admPassphraseValidation(fraseSecreta);
+            if (isOk) {
+                pipeline.setPassphrase(fraseSecreta);
+                showLoginPage();
+            } else {
+                Alert a = new Alert(Alert.AlertType.ERROR);
+                a.setTitle("Cadastro");
+                a.setHeaderText("Nao foi possivel validar a frase secreta.");
+                a.setOnCloseRequest(event -> System.exit(0));
+                a.showAndWait();
+            }
         });
 
         Button fecharButton = new Button("Fechar");
@@ -208,12 +216,22 @@ public class CofreApp extends Application {
             } else {
                 System.out.println("Senha inválida!");
             }
-
+        });
+        Button cadastroButton = new Button("Cadastrar");
+        cadastroButton.setOnAction(e -> {
+            showCadastroPage();
+        });
+        Button encerrarButton = new Button("Encerrar");
+        encerrarButton.setOnAction(e -> {
+            System.exit(0);
         });
 
         HBox campoSenha = new HBox(10, senhaLabel, senhaDisplay);
+        HBox buttonContainer = new HBox(10, encerrarButton, cadastroButton, loginButton);
+        buttonContainer.setAlignment(javafx.geometry.Pos.CENTER);
 
-        VBox layout = new VBox(20, titleLabel, campoLogin, campoFraseSecreta, campoSenha, botoesContainer, loginButton);
+        VBox layout = new VBox(20, titleLabel, campoLogin, campoFraseSecreta, campoSenha,
+                botoesContainer, buttonContainer);
         layout.setAlignment(javafx.geometry.Pos.CENTER);
 
         Scene scene = new Scene(layout, 350, 350);
