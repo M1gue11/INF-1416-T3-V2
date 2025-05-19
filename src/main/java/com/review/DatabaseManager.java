@@ -31,6 +31,7 @@ public class DatabaseManager {
                             "grupo TEXT NOT NULL CHECK (grupo IN ('Administrador', 'Usuario'))," +
                             "KID INTEGER NOT NULL," +
                             "numero_acessos INTEGER NOT NULL," +
+                            "numero_consultas INTEGER NOT NULL, " +
                             "ultimo_bloqueio_ts INTEGER, " +
                             "chave_totp_cript TEXT NOT NULL, " +
                             "FOREIGN KEY (KID) REFERENCES Chaveiro(KID));");
@@ -112,6 +113,7 @@ public class DatabaseManager {
                 user.numero_acessos = rs.getInt("numero_acessos");
                 user.ultimo_bloqueio_ts = rs.getInt("ultimo_bloqueio_ts");
                 user.chave_totp_cript = rs.getString("chave_totp_cript");
+                user.numero_consultas = rs.getInt("numero_consultas");
 
                 return user;
             } else {
@@ -151,7 +153,7 @@ public class DatabaseManager {
             String caminhoChavePrivada,
             String chaveTotpCript) {
         String sqlChaveiro = "INSERT INTO Chaveiro (caminho_certificado, caminho_chave_privada) VALUES (?, ?)";
-        String sqlUsuario = "INSERT INTO Usuario (nome, email, senha_pessoal_hash, grupo, KID, numero_acessos, chave_totp_cript) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sqlUsuario = "INSERT INTO Usuario (nome, email, senha_pessoal_hash, grupo, KID, numero_acessos, chave_totp_cript, numero_consultas) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
             conn.setAutoCommit(false);
 
@@ -176,6 +178,7 @@ public class DatabaseManager {
                 try (PreparedStatement pstmtUsuario = conn.prepareStatement(sqlUsuario,
                         Statement.RETURN_GENERATED_KEYS)) {
                     int numero_acessos = 0;
+                    int numero_consultas = 0;
                     pstmtUsuario.setString(1, nome);
                     pstmtUsuario.setString(2, email);
                     pstmtUsuario.setString(3, senhaHash);
@@ -183,6 +186,7 @@ public class DatabaseManager {
                     pstmtUsuario.setInt(5, KID);
                     pstmtUsuario.setInt(6, numero_acessos);
                     pstmtUsuario.setString(7, chaveTotpCript);
+                    pstmtUsuario.setInt(8, numero_consultas);
                     pstmtUsuario.executeUpdate();
 
                     ResultSet rs = pstmtUsuario.getGeneratedKeys();
@@ -413,6 +417,30 @@ public class DatabaseManager {
     public static Chaveiro getChaveiroSuperAdm() {
         User adm = getSuperAdmin();
         return getChaveiroByKID(adm.KID);
+    }
+
+    public static void incrementarNumeroAcessos(int uid) {
+        String sql = "UPDATE Usuario SET numero_acessos = numero_acessos + 1 WHERE UID = ?";
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, uid);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Erro ao incrementar número de acessos: " + e.getMessage());
+        }
+    }
+
+    public static void incrementarNumeroConsultas(int uid) {
+        String sql = "UPDATE Usuario SET numero_consultas = numero_consultas + 1 WHERE UID = ?";
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, uid);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Erro ao incrementar número de consultas: " + e.getMessage());
+        }
     }
 
     public static String getMessageByMessageCode(int codigo, Optional<String> arqName, Optional<String> loginName) {

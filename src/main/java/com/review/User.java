@@ -10,6 +10,7 @@ public class User {
     public Integer numero_acessos;
     public Integer ultimo_bloqueio_ts;
     public String chave_totp_cript;
+    public Integer numero_consultas;
 
     public void fetchDefault() {
         UID = -1;
@@ -21,6 +22,7 @@ public class User {
         numero_acessos = 0;
         ultimo_bloqueio_ts = null;
         chave_totp_cript = "none";
+        numero_consultas = 0;
     }
 
     public boolean isAdmin() {

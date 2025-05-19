@@ -10,19 +10,32 @@ import javax.crypto.SecretKey;
 
 import com.review.Files.Arquivo;
 import com.review.Files.Index;
-import com.review.DatabaseManager;
 
 public class ExecutionPipeline {
     static ExecutionPipeline instance = null;
     private PrivateKey admPrivateKey = null;
     private String password = null;
     public User user = null;
-    public boolean isLogado;
+    public boolean isLogado = false;
 
     public void logout() {
         ExecutionPipeline.instance = new ExecutionPipeline();
         this.user = new User();
         this.user.fetchDefault();
+    }
+
+    public void confirmLogin() {
+        isLogado = true;
+        DatabaseManager.incrementarNumeroAcessos(this.user.UID);
+        user = DatabaseManager.getUserByEmail(user.email);
+    }
+
+    public boolean bypassLoginWithAdm() {
+        this.user = DatabaseManager.getUserByEmail("teste@teste.com");
+        this.password = "12345678";
+        this.admPrivateKey = null;
+        confirmLogin();
+        return true;
     }
 
     public String getPassword() {
@@ -60,10 +73,6 @@ public class ExecutionPipeline {
         return DatabaseManager.getNumberOfUsers() == 0;
     }
 
-    public void login(String email, String passphrase, String senha) {
-        // var cert = PrivateKeyManager.loadCertificateFromFile(email);
-    }
-
     public boolean admPassphraseValidation(String passphrase) {
         try {
             User adm = DatabaseManager.getSuperAdmin();
@@ -80,16 +89,21 @@ public class ExecutionPipeline {
 
     public RetornoCadastro cadastro(String caminhoCert, String caminhoPk, String fraseSec,
             String gp, String senha, String confirmacaoSenha) {
+
         try {
-            X509Certificate cert = PrivateKeyManager.loadCaFromFile(caminhoCert);
-            String email = PrivateKeyManager.getEmailFromCA(cert);
+
             boolean isFormOk = true;
 
             if (!InputValidation.isValidCAFilePath(caminhoCert, "certificado")) {
                 isFormOk = false;
                 DatabaseManager.insereLog(6004, Optional.empty(), Optional.of(user));
                 System.out.println("Erro: Caminho do certificado inválido.");
+                // Nao da pra seguir com o cadastro
+                return new RetornoCadastro(-1, null, null);
             }
+
+            X509Certificate cert = PrivateKeyManager.loadCaFromFile(caminhoCert);
+            String email = PrivateKeyManager.getEmailFromCA(cert);
 
             if (!InputValidation.isValidPkFilePath(caminhoPk, "chave_privada")) {
                 isFormOk = false;
@@ -137,7 +151,7 @@ public class ExecutionPipeline {
             int uid = DatabaseManager.cadastrarUsuario(nome, email.toLowerCase(), senhaHash, safeGroupName,
                     caminhoCert, caminhoPk,
                     chaveB32Cript);
-            
+
             DatabaseManager.insereLog(6008, Optional.empty(), Optional.of(user));
             return new RetornoCadastro(uid, chaveB32, email);
 
@@ -155,12 +169,9 @@ public class ExecutionPipeline {
         return InputValidation.isValidTOTP(codigoTotp, user.chave_totp_cript, this.password);
     }
 
-    public boolean bypassLogin() {
-        this.user = DatabaseManager.getUserByEmail("teste@teste.com");
-        this.password = "12345678";
-        this.admPrivateKey = null;
-        this.isLogado = true;
-        return true;
+    public void incrementarConsultasEAtualizarUsuario() {
+        DatabaseManager.incrementarNumeroConsultas(this.user.UID);
+        this.user = DatabaseManager.getUserByEmail(this.user.email);
     }
 
     public List<Arquivo> listAllFiles(String caminhoPasta, String fraseSecretaAdm) {
@@ -196,6 +207,7 @@ public class ExecutionPipeline {
             SecretKey aesKey = index.processarDotEnv(admPrivateKey);
             String conteudoArquivoIndice = index.processarDotEnc(aesKey);
             List<Arquivo> arquivos = index.parseArquivoIndex(conteudoArquivoIndice);
+            this.incrementarConsultasEAtualizarUsuario();
             return arquivos;
         } catch (Exception e) {
             // e.printStackTrace();
