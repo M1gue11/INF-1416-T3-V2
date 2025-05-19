@@ -9,7 +9,6 @@ public class User {
     public Integer KID;
     public Integer numero_acessos;
     public Integer ultimo_bloqueio_ts;
-    public Integer acessosTotais;
     public String chave_totp_cript;
 
     public void fetchDefault() {
@@ -21,8 +20,11 @@ public class User {
         KID = -1;
         numero_acessos = 0;
         ultimo_bloqueio_ts = null;
-        acessosTotais = 0;
         chave_totp_cript = "none";
+    }
+
+    public boolean isAdmin() {
+        return this.grupo.equals("Administrador");
     }
 
 }

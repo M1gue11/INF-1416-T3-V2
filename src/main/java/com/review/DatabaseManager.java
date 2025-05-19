@@ -123,18 +123,17 @@ public class DatabaseManager {
         }
     }
 
-    public static String getPasswordByLogin(String email){
+    public static String getPasswordByLogin(String email) {
         String sql = "SELECT senha_pessoal_hash FROM Usuario WHERE email = ?";
 
         try (Connection conn = DriverManager.getConnection(DB_URL);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, email);
             ResultSet rs = pstmt.executeQuery();
 
             return rs.getString("senha_pessoal_hash");
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             System.err.println("Erro ao buscar senha: " + e.getMessage());
         }
         return null;
@@ -340,6 +339,11 @@ public class DatabaseManager {
             System.err.println("Erro ao buscar SuperAdmin: " + e.getMessage());
             return null;
         }
+    }
+
+    public static Chaveiro getChaveiroSuperAdm() {
+        User adm = getSuperAdmin();
+        return getChaveiroByKID(adm.KID);
     }
 
     public static String getMessageByMessageCode(int codigo, Optional<String> arqName, Optional<String> loginName) {
