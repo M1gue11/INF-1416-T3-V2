@@ -47,7 +47,6 @@ public class Index {
             if (!folder.mkdirs()) {
                 throw new IllegalArgumentException("Caminho da pasta inválido ou não pôde ser criado: " + caminhoPasta);
             }
-            System.out.println("Pasta de índice criada: " + caminhoPasta);
         }
         this.indexPaths = Index.getIndexPaths(caminhoPasta);
     }
@@ -63,7 +62,6 @@ public class Index {
         byte[] assinaturaBin = Files.readAllBytes(Paths.get(this.indexPaths.asdPath));
         Signature sig = Signature.getInstance("SHA256withRSA");
         sig.initVerify(admPbk);
-        System.out.println("Conteudo para validacao: " + KeyManager.sha256(conteudoCript));
         sig.update(conteudoCript);
         boolean isValid = sig.verify(assinaturaBin);
         if (!isValid) {
@@ -213,10 +211,10 @@ public class Index {
      */
     public static void gerarIndiceDeTeste(String pastaDeTeste, PublicKey adminPublicKey, PrivateKey adminPrivateKey) {
         ArrayList<Arquivo> listaArquivosTeste = new ArrayList<>();
-        listaArquivosTeste.add(new Arquivo("cod1", "segredoA.txt", "usuario1@puc.br", "Usuarios"));
-        listaArquivosTeste.add(new Arquivo("cod2", "relatorioX.docx", "admin@puc.br", "Administradores"));
-        listaArquivosTeste.add(new Arquivo("cod3", "foto_ferias.jpg", "usuario1@puc.br", "Usuarios"));
-        listaArquivosTeste.add(new Arquivo("cod4", "backup.zip", "usuario2@puc.br", "Usuarios"));
+        listaArquivosTeste.add(new Arquivo("cod1", "segredoA.txt", "usuario1@puc.br", "Usuario"));
+        listaArquivosTeste.add(new Arquivo("cod2", "relatorioX.docx", "admin@puc.br", "Administrador"));
+        listaArquivosTeste.add(new Arquivo("cod3", "foto_ferias.jpg", "usuario1@puc.br", "Usuario"));
+        listaArquivosTeste.add(new Arquivo("cod4", "backup.zip", "usuario2@puc.br", "Usuario"));
 
         String conteudoPlain = criarConteudoStringDoIndice(listaArquivosTeste);
         System.out.println("--- Conteúdo Plain do Índice de Teste ---");

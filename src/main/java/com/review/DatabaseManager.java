@@ -177,7 +177,7 @@ public class DatabaseManager {
                         Statement.RETURN_GENERATED_KEYS)) {
                     int numero_acessos = 0;
                     pstmtUsuario.setString(1, nome);
-                    pstmtUsuario.setString(2, email.toLowerCase());
+                    pstmtUsuario.setString(2, email);
                     pstmtUsuario.setString(3, senhaHash);
                     pstmtUsuario.setString(4, grupo);
                     pstmtUsuario.setInt(5, KID);
@@ -311,6 +311,16 @@ public class DatabaseManager {
         } catch (SQLException e) {
             System.err.println("Erro ao executar SQL: " + e.getMessage());
             return null;
+        }
+    }
+
+    public static void executeUpdateSql(String sql) {
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+                Statement stmt = conn.createStatement()) {
+
+            stmt.executeUpdate(sql);
+        } catch (SQLException e) {
+            System.err.println("Erro ao executar SQL: " + e.getMessage());
         }
     }
 

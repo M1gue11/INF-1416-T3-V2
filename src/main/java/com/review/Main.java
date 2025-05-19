@@ -6,36 +6,9 @@ import javafx.application.Application;
 
 public class Main {
     public static void main(String[] args) {
-        // try {
-        // var foo = PrivateKeyManager.decryptContentWithPhrase(
-        // "6HJBJPGZEMIDX7LPJBJ6FQCDV57KAKLVBLHN5UHY2PRRN7PED6DQI4PIJXIT26675GPYIHPUKYGHK===",
-        // "12345678");
-        // System.out.println("BAGOMANTE" + foo);
-        // return;
-        // } catch (Exception e) {
-        // e.printStackTrace();
-        // }
-        // KeyManager.generateDefaultCA();
+        // DatabaseManager.executeUpdateSql("DELETE FROM usuario WHERE UID=10");
+        // DatabaseManager.executeUpdateSql("DELETE FROM chaveiro WHERE KID=10");
+        // KeyManager.generateTestCA();
         Application.launch(CofreApp.class, args);
-        String pkPath = "keys/minha_chave_privada_ca.bin";
-        var caPath = "keys/meu_certificado_ca.pem";
-        var sec = "1234";
-        ExecutionPipeline pipeline = ExecutionPipeline.getInstance();
-        pipeline.cadastro(caPath, pkPath, sec, "Administrador", "12345678",
-                "12345678");
-
-        // KeyManager.generateDefaultCA();
-
-        // ArvoreSenha arvore = new ArvoreSenha();
-        //
-        // arvore.inserirOpcao(1, 10, 20);
-        // arvore.inserirOpcao(2, 30, 40);
-        // arvore.inserirOpcao(3, 50, 60);
-        //
-        // // Opção 1: Números concatenados
-        // List<String> sequencias = arvore.gerarSequenciasNumericas();
-        // System.out.println("Sequências numéricas:");
-        // sequencias.forEach(System.out::println);
-
     }
 }

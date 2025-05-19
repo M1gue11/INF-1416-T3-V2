@@ -63,10 +63,8 @@ public class InputValidation {
 
     public static boolean isValidGroup(String group) {
         String lowerGroup = group.toLowerCase();
-        System.out.println("Grupo: " + lowerGroup + lowerGroup != null && !lowerGroup.trim().isEmpty()
-                && (lowerGroup == "Administrador".toLowerCase() || lowerGroup == "Usuario".toLowerCase()));
         return lowerGroup != null && !lowerGroup.trim().isEmpty()
-                && (lowerGroup == "Administrador".toLowerCase() || lowerGroup == "Usuario".toLowerCase());
+                && (lowerGroup.equals("Administrador".toLowerCase()) || lowerGroup.equals("Usuario".toLowerCase()));
     }
 
     public static boolean isUserValidPassword(String password, String confirmation, String name) {

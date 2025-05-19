@@ -271,29 +271,18 @@ public class KeyManager {
         }
     }
 
-    public static void generateDefaultCA() {
-
-        // Parâmetros para o certificado
-        String commonName = "CA de Teste";
-        String emailAddress = "teste@teste.com";
-        String orgUnit = "MIANPL";
-        String organization = "MIANPL LTDA.";
-        String locality = "Rio de Janeiro";
-        String stateOrProvince = "Rio de Janeiro";
-        String country = "BR"; // Código do país com 2 letras (ISO 3166-1 alpha-2)
-        String passPhrase = "teste"; // Frase secreta para criptografar a chave privada
-
-        int validityDays = 365; // Validade de 1 ano
-        int keySize = 2048; // Tamanho da chave RSA
-
-        // Nomes dos arquivos de saída
-        String certFilePath = "keys/meu_certificado_ca.pem";
-        String keyFilePath = "keys/minha_chave_privada_ca.bin";
+    public static void generateTestCA() {
+        int keySize = 2048;
+        Certificado user1CA = new Certificado("Miguel", "miguel@gmail.com", "PUC", "PUC-Rio",
+                "Rio de Janeiro", "Rio de Janeiro", "BR", "miguel", 365);
+        String certFilePath = "keys/CAUser1.pem";
+        String keyFilePath = "keys/PKUser1.bin";
 
         KeyManager km = new KeyManager();
         km.generateAndSaveAssets(
-                commonName, emailAddress, orgUnit, organization, locality, stateOrProvince, country,
-                validityDays, keySize,
-                certFilePath, keyFilePath, passPhrase);
+                user1CA.commonName, user1CA.emailAddress, user1CA.orgUnit, user1CA.organization, user1CA.locality,
+                user1CA.stateOrProvince, user1CA.country,
+                user1CA.validityDays, keySize,
+                certFilePath, keyFilePath, user1CA.passPhrase);
     }
 }

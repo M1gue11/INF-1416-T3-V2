@@ -24,18 +24,12 @@ public class ExecutionPipeline {
     }
 
     public String getPassword() {
-        if (this.password == null) {
-            throw new IllegalStateException("Password not set");
-        }
         return this.password;
     }
 
     public void setPassword(String password) {
         if (password == null || password.isEmpty()) {
             throw new IllegalArgumentException("Password cannot be null or empty");
-        }
-        if (this.password != null) {
-            throw new IllegalArgumentException("Password already set");
         }
         this.password = password;
     }
@@ -89,7 +83,7 @@ public class ExecutionPipeline {
             String email = PrivateKeyManager.getEmailFromCA(cert);
             boolean isFormOk = InputValidation.isValidCAFilePath(caminhoCert, "certificado")
                     && InputValidation.isValidPkFilePath(caminhoPk, "chave_privada")
-                    // && InputValidation.isValidGroup(gp);
+                    && InputValidation.isValidGroup(gp)
                     && InputValidation.isValidPassword(senha, confirmacaoSenha)
                     && InputValidation.isValidEmail(email)
                     && InputValidation.pkAndCaMatchPassphrase(fraseSec, caminhoCert, caminhoPk,
@@ -97,19 +91,19 @@ public class ExecutionPipeline {
 
             if (!isFormOk) {
                 // TODO: log
-                System.out.println("Formulário inválido");
                 return new RetornoCadastro(-1, null, email);
             }
 
             byte[] chave = KeyManager.getRandomArr(20);
             String chaveB32 = new Base32(Base32.Alphabet.BASE32, true, false).toString(chave);
 
-            System.out.println("segredo: " + chaveB32);
             String chaveB32Cript = PrivateKeyManager.encryptContentWithPhrase(chaveB32, senha);
 
             String senhaHash = KeyManager.gerarHashBcrypt(senha);
             String nome = PrivateKeyManager.getCommonNameFromCA(cert);
-            int uid = DatabaseManager.cadastrarUsuario(nome, email, senhaHash, gp, caminhoCert, caminhoPk,
+            String safeGroupName = gp.substring(0, 1).toUpperCase() + gp.substring(1).toLowerCase();
+            int uid = DatabaseManager.cadastrarUsuario(nome, email.toLowerCase(), senhaHash, safeGroupName,
+                    caminhoCert, caminhoPk,
                     chaveB32Cript);
             return new RetornoCadastro(uid, chaveB32, email);
 
@@ -133,16 +127,10 @@ public class ExecutionPipeline {
         return true;
     }
 
-    public List<Arquivo> listFiles(String caminhoPasta, String fraseSecretaAdm) {
+    public List<Arquivo> listAllFiles(String caminhoPasta, String fraseSecretaAdm) {
         if (!InputValidation.isValidPath(caminhoPasta)) {
             // TODO: log
             System.out.println("Erro: caminho da pasta inválido!");
-            return null;
-        }
-
-        if (!InputValidation.isValidPhrase(fraseSecretaAdm)) {
-            // TODO: log
-            System.out.println("Erro: frase secreta inválida!");
             return null;
         }
 
@@ -152,7 +140,7 @@ public class ExecutionPipeline {
                 admChaveiro.caminho_chave_privada, true);
         if (!isValidPassphrase) {
             // TODO: log
-            System.out.println("Frase secreta do adm inválida");
+            System.out.println("Nao foi possivel validar a chave secreta do ADM!");
             return null;
         }
 
@@ -161,7 +149,6 @@ public class ExecutionPipeline {
                     fraseSecretaAdm);
             Index index = new Index(caminhoPasta);
             PublicKey admPublicKey = PrivateKeyManager.loadCaFromFile(admChaveiro.caminho_certificado).getPublicKey();
-            System.out.println("chave publica: " + admPublicKey.toString());
             if (index.processarDotAsd(admPublicKey)) {
                 // TODO: log
                 System.out.println("Arquivo .asd (assinatura) validado com sucesso!");
@@ -179,5 +166,15 @@ public class ExecutionPipeline {
             System.err.println("Erro ao listar arquivos: " + e.getMessage());
             return null;
         }
+    }
+
+    public List<Arquivo> listUserGroupFiles(String caminhoPasta, String fraseSecretaAdm) {
+        List<Arquivo> arquivos = listAllFiles(caminhoPasta, fraseSecretaAdm);
+        if (arquivos == null) {
+            return arquivos;
+        }
+        return arquivos.stream()
+                .filter(arquivo -> user.isAllowed(arquivo.grupoArquivo))
+                .toList();
     }
 }

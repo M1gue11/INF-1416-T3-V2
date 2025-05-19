@@ -27,4 +27,7 @@ public class User {
         return this.grupo.equals("Administrador");
     }
 
+    public boolean isAllowed(String group) {
+        return this.grupo.equals(group) || this.grupo.equals("Administrador");
+    }
 }

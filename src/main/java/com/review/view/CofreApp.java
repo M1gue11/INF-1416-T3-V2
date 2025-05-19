@@ -40,7 +40,7 @@ public class CofreApp extends Application {
     private Stage primaryStage;
     private ExecutionPipeline pipeline = ExecutionPipeline.getInstance();
     private boolean isFirstAccess = pipeline.isFirstAccess();
-    private static final boolean bypassLogin = true;
+    private static final boolean bypassLogin = false;
 
     public void start(Stage primaryStage) {
         this.primaryStage = primaryStage;
@@ -118,7 +118,7 @@ public class CofreApp extends Application {
 
         toLogout.setOnAction(e -> {
             pipeline.logout();
-            showLoginPage();
+            showPassphrasePage();
         });
         toConsulta.setOnAction(e -> showFilesPage());
         openLogs.setOnAction(e -> {
@@ -166,7 +166,7 @@ public class CofreApp extends Application {
         botaoListar.setOnAction(e -> {
             String caminhoPasta = ((TextField) campoCaminhoPasta.getChildren().get(1)).getText();
             String fraseSecreta = ((TextField) campoFraseSecreta.getChildren().get(1)).getText();
-            List<Arquivo> arquivos = pipeline.listFiles(caminhoPasta, fraseSecreta);
+            List<Arquivo> arquivos = pipeline.listUserGroupFiles(caminhoPasta, fraseSecreta);
             if (arquivos == null) {
                 Alert a = new Alert(Alert.AlertType.ERROR);
                 a.setTitle("Erro");
@@ -233,8 +233,22 @@ public class CofreApp extends Application {
             RetornoCadastro retCadastro = pipeline.cadastro(caminhoCertificado, caminhoChavePrivada,
                     fraseSecreta, grupo, senha,
                     confirmacaoSenha);
-            String urlChave = TOTP.getGoogleAuthUrl(retCadastro.email, retCadastro.chaveB32);
 
+            Alert a = new Alert(retCadastro.uid == -1 ? Alert.AlertType.ERROR : Alert.AlertType.CONFIRMATION);
+            a.setTitle("Cadastro");
+            a.setHeaderText(retCadastro.uid == -1 ? "Erro ao cadastrar usuário" : "Usuário cadastrado com sucesso");
+            a.setOnCloseRequest(exit -> {
+                if (isFirstAccess) {
+                    System.exit(0);
+                }
+            });
+            a.showAndWait();
+            if (retCadastro.uid == -1) {
+                // TODO: interrompe o fluxo
+                return;
+            }
+
+            String urlChave = TOTP.getGoogleAuthUrl(retCadastro.email, retCadastro.chaveB32);
             Alert qrCode = new Alert(Alert.AlertType.INFORMATION);
             try {
                 BufferedImage qrCodeImage = generateQRCodeImage(urlChave);
@@ -249,26 +263,18 @@ public class CofreApp extends Application {
                 qrCodeStage.setScene(scene);
                 qrCodeStage.show();
 
-                qrCode.setOnCloseRequest(exit -> System.exit(0));
+                qrCode.setOnCloseRequest(exit -> {
+                    if (isFirstAccess) {
+                        System.exit(0);
+                    }
+                });
             } catch (Exception ex) {
+                // TODO: log e rever esse comportamento
                 ex.printStackTrace();
                 qrCode.setContentText("Erro ao gerar QR Code.");
                 qrCode.setOnCloseRequest(exit -> System.exit(0));
             }
-
-            String alertMessage;
-            if (retCadastro.uid == -1) {
-                // TODO: log
-                alertMessage = "Erro ao cadastrar usuário";
-            } else {
-                // TODO: log
-                alertMessage = "Usuário cadastrado com sucesso";
-            }
-            Alert a = new Alert(Alert.AlertType.INFORMATION);
-            a.setTitle("Cadastro");
-            a.setHeaderText(alertMessage);
-            a.setOnCloseRequest(exit -> System.exit(0));
-            a.showAndWait();
+            showHomePage();
         });
         HBox bottonButtons = new HBox(10, cadastrarButton);
 
@@ -392,10 +398,19 @@ public class CofreApp extends Application {
 
         Button loginButton = new Button("Entrar");
         loginButton.setOnAction(e -> {
+            loginButton.setDisable(true);
             String login = ((TextField) campoLogin.getChildren().get(1)).getText();
             List<String> senhasPossiveis = arvore.gerarSequenciasNumericas();
             User user = DatabaseManager.getUserByEmail(login);
-
+            if (user == null) {
+                // TODO: log
+                Alert a = new Alert(Alert.AlertType.ERROR);
+                a.setTitle("Erro");
+                a.setHeaderText("Login ou senha inválidos.");
+                a.showAndWait();
+                loginButton.setDisable(false);
+                return;
+            }
             // TODO: logs
             for (String senha : senhasPossiveis) {
                 if (KeyManager.validarSenha(senha, user.senha_pessoal_hash)) {
@@ -405,7 +420,7 @@ public class CofreApp extends Application {
                     break;
                 }
             }
-
+            loginButton.setDisable(false);
         });
         Button cadastroButton = new Button("Cadastrar");
         cadastroButton.setOnAction(e -> {
