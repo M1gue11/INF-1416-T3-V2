@@ -3,6 +3,7 @@ package com.review;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,6 +29,7 @@ public class ExecutionPipeline {
         isLogado = true;
         DatabaseManager.incrementarNumeroAcessos(this.user.UID);
         user = DatabaseManager.getUserByEmail(user.email);
+        DatabaseManager.insereLog(1003, Optional.empty(), Optional.of(user));
     }
 
     public boolean bypassLoginWithAdm() {
@@ -36,6 +38,11 @@ public class ExecutionPipeline {
         this.admPrivateKey = null;
         confirmLogin();
         return true;
+    }
+
+    public void bloquearUsuario() {
+        DatabaseManager.bloquearUsuario(this.user.UID, Instant.now().getEpochSecond());
+        this.user = DatabaseManager.getUserByEmail(this.user.email);
     }
 
     public String getPassword() {

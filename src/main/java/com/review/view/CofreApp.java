@@ -27,6 +27,7 @@ import javafx.stage.Stage;
 import javafx.scene.image.WritableImage;
 
 import java.awt.image.BufferedImage;
+
 import javafx.scene.image.ImageView;
 import javafx.embed.swing.SwingFXUtils;
 
@@ -40,17 +41,17 @@ public class CofreApp extends Application {
     private Stage primaryStage;
     private ExecutionPipeline pipeline = ExecutionPipeline.getInstance();
     private boolean isFirstAccess = pipeline.isFirstAccess();
-    private static final boolean bypassLogin = true;
+    private static final boolean bypassLogin = false;
     private int toptCount = 0;
 
     public void start(Stage primaryStage) {
+        insereLog(1001, Optional.empty(), Optional.empty());
         this.primaryStage = primaryStage;
 
         if (isFirstAccess) {
             insereLog(1005, Optional.empty(), Optional.empty());
             showCadastroPage();
         } else {
-            insereLog(1006, Optional.empty(), Optional.empty());
             if (bypassLogin) {
                 pipeline.bypassLoginWithAdm();
                 showHomePage();
@@ -98,6 +99,7 @@ public class CofreApp extends Application {
         Button sairButton = new Button("Sair");
         sairButton.setOnAction(e -> {
             System.exit(0);
+            insereLog(1002, Optional.empty(), Optional.empty());
         });
 
         HBox buttonContainer = new HBox(10, voltarButton, sairButton);
@@ -129,10 +131,7 @@ public class CofreApp extends Application {
         });
 
         toLogout.setOnAction(e -> {
-            insereLog(5004, Optional.empty(), Optional.of(pipeline.user));
-            insereLog(8003, Optional.empty(), Optional.of(pipeline.user));
-            pipeline.logout();
-            showPassphrasePage();
+            showExitPagew();
         });
         toConsulta.setOnAction(e -> {
             insereLog(5003, Optional.empty(), Optional.of(pipeline.user));
@@ -144,6 +143,45 @@ public class CofreApp extends Application {
         });
 
         VBox layout = new VBox(10, header, userAcssesCount, label, toCadastro, toConsulta, openLogs, toLogout);
+        layout.setAlignment(javafx.geometry.Pos.CENTER);
+
+        Scene scene = new Scene(layout, 400, 300);
+        primaryStage.setScene(scene);
+    }
+
+    private void showExitPagew() {
+        insereLog(5001, Optional.empty(), Optional.of(pipeline.user));
+        VBox header = new HeaderComponent(pipeline.user);
+        Label label = new Label("Saída do sistema");
+        Label saida = new Label("Mensagem de saida");
+
+        Label userAcssesCount = new Label(
+                "Total de acessos do usuário: " + pipeline.user.numero_acessos);
+
+        Button encerrar = new Button("Encerrar sessao");
+        Button fecharSistema = new Button("Encerrar sistema");
+        Button menuPrincipalButton = new Button("Voltar ao menu principal");
+
+        menuPrincipalButton.setOnAction(e -> {
+            insereLog(8004, Optional.empty(), Optional.of(pipeline.user));
+            showHomePage();
+        });
+
+        encerrar.setOnAction(e -> {
+            insereLog(8002, Optional.empty(), Optional.of(pipeline.user));
+            pipeline.logout();
+            insereLog(1004, Optional.empty(), Optional.of(pipeline.user));
+            showPassphrasePage();
+        });
+
+        fecharSistema.setOnAction(e -> {
+            insereLog(8003, Optional.empty(), Optional.of(pipeline.user));
+            insereLog(1004, Optional.empty(), Optional.of(pipeline.user));
+            System.exit(0);
+            insereLog(1002, Optional.empty(), Optional.empty());
+        });
+
+        VBox layout = new VBox(10, header, userAcssesCount, label, saida, encerrar, fecharSistema, menuPrincipalButton);
         layout.setAlignment(javafx.geometry.Pos.CENTER);
 
         Scene scene = new Scene(layout, 400, 300);
@@ -276,6 +314,7 @@ public class CofreApp extends Application {
             qrCode.setOnCloseRequest(exit -> {
                 if (isFirstAccess) {
                     System.exit(0);
+                    insereLog(1002, Optional.empty(), Optional.empty());
                 }
             });
             try {
@@ -299,6 +338,7 @@ public class CofreApp extends Application {
                     if (isFirstAccess) {
                         // Ensure exit on error during first access
                         System.exit(0);
+                        insereLog(1002, Optional.empty(), Optional.empty());
                     }
                 });
             }
@@ -354,6 +394,7 @@ public class CofreApp extends Application {
         Button fecharButton = new Button("Fechar");
         fecharButton.setOnAction(e -> {
             System.exit(0);
+            insereLog(1002, Optional.empty(), Optional.empty());
         });
 
         HBox botoes = new HBox(10, fecharButton, continuarButton);
@@ -369,6 +410,7 @@ public class CofreApp extends Application {
     private int passwordLoginCount = 0; // Moved count to an instance variable
 
     private void showLoginPage() {
+        insereLog(2001, Optional.empty(), Optional.empty());
         List<Integer> botoesPressionados = new java.util.ArrayList<>();
         List<Integer> valores = new java.util.ArrayList<>();
         ArvoreSenha arvore = new ArvoreSenha();
@@ -432,57 +474,64 @@ public class CofreApp extends Application {
 
         Button loginButton = new Button("Entrar");
         loginButton.setOnAction(e -> {
-            insereLog(2001, Optional.empty(), Optional.empty());
             loginButton.setDisable(true);
             String login = ((TextField) campoLogin.getChildren().get(1)).getText();
             List<String> senhasPossiveis = arvore.gerarSequenciasNumericas();
-            User user = DatabaseManager.getUserByEmail(login);
-            if (user == null) {
-                user = new User();
-                user.email = login;
-                insereLog(2005, Optional.empty(), Optional.of(user));
-                user = null;
+            pipeline.user = DatabaseManager.getUserByEmail(login);
+            if (pipeline.user == null) {
+                pipeline.user = new User();
+                pipeline.user.email = login;
+                insereLog(2005, Optional.empty(), Optional.of(pipeline.user));
+                pipeline.user = null;
                 Alert a = new Alert(Alert.AlertType.ERROR);
                 a.setTitle("Erro");
                 a.setHeaderText("Login ou senha inválidos.");
                 a.showAndWait();
                 loginButton.setDisable(false);
                 return;
-                // TODO: como logar o bloqueado
             }
-            insereLog(2003, Optional.empty(), Optional.of(user));
+
+            if (this.passwordLoginCount == 3) {
+                pipeline.bloquearUsuario();
+                insereLog(3007, Optional.empty(), Optional.of(pipeline.user));
+            }
+
+            if (pipeline.user.isBloqueado()) {
+                insereLog(2004, Optional.empty(), Optional.of(pipeline.user));
+                Alert a = new Alert(Alert.AlertType.ERROR);
+                a.setTitle("Erro");
+                a.setHeaderText("Usuario bloqueado.");
+                a.showAndWait();
+                loginButton.setDisable(false);
+                return;
+            }
+
+            insereLog(2003, Optional.empty(), Optional.of(pipeline.user));
             insereLog(2002, Optional.empty(), Optional.empty());
-            insereLog(3001, Optional.empty(), Optional.of(user));
+            insereLog(3001, Optional.empty(), Optional.of(pipeline.user));
             for (String senha : senhasPossiveis) {
-                if (KeyManager.validarSenha(senha, user.senha_pessoal_hash)) {
+                if (KeyManager.validarSenha(senha, pipeline.user.senha_pessoal_hash)) {
                     this.passwordLoginCount = 0;
                     pipeline.setPassword(senha);
-                    pipeline.user = user;
                     showTOTPPage();
-                    break;
+                    return;
                 }
             }
             this.passwordLoginCount++;
-            System.out.println("Tentativa de login invalida 1: " + this.passwordLoginCount);
-            insereLog(3003 + this.passwordLoginCount, Optional.empty(), Optional.of(user));
-            if (this.passwordLoginCount >= 3) {
-                // ToDo: bloquear o usuario
-                insereLog(3007, Optional.empty(), Optional.of(user));
-            }
-            insereLog(3002, Optional.empty(), Optional.of(user));
+            System.out.println("Tentativa de login invalida: " + this.passwordLoginCount);
+            insereLog(3003 + this.passwordLoginCount, Optional.empty(), Optional.of(pipeline.user));
+
+            insereLog(3002, Optional.empty(), Optional.of(pipeline.user));
             loginButton.setDisable(false);
-        });
-        Button cadastroButton = new Button("Cadastrar");
-        cadastroButton.setOnAction(e -> {
-            showCadastroPage();
         });
         Button encerrarButton = new Button("Encerrar");
         encerrarButton.setOnAction(e -> {
             System.exit(0);
+            insereLog(1002, Optional.empty(), Optional.empty());
         });
 
         HBox campoSenha = new HBox(10, senhaLabel, senhaDisplay);
-        HBox buttonContainer = new HBox(10, encerrarButton, cadastroButton, loginButton);
+        HBox buttonContainer = new HBox(10, encerrarButton, loginButton);
         buttonContainer.setAlignment(javafx.geometry.Pos.CENTER);
 
         VBox layout = new VBox(20, titleLabel, campoLogin, campoSenha,

@@ -128,6 +128,19 @@ public class DatabaseManager {
         }
     }
 
+    public static void bloquearUsuario(Integer uid, long timestamp) {
+        String sql = "UPDATE Usuario SET ultimo_bloqueio_ts = ? WHERE UID = ?";
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setLong(1, timestamp);
+            pstmt.setInt(2, uid);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Erro ao atualizar timestamp de bloqueio: " + e.getMessage());
+        }
+    }
+
     public static String getPasswordByLogin(String email) {
         String sql = "SELECT senha_pessoal_hash FROM Usuario WHERE email = ?";
 
@@ -465,11 +478,11 @@ public class DatabaseManager {
             case 2002:
                 return "Autenticação etapa 1 encerrada.";
             case 2003:
-                return "Login name" + login + " identificado com acesso liberado.";
+                return "Login name " + login + " identificado com acesso liberado.";
             case 2004:
-                return "Login name" + login + " identificado com acesso bloqueado.";
+                return "Login name " + login + " identificado com acesso bloqueado.";
             case 2005:
-                return "Login name" + login + " não identificado.";
+                return "Login name " + login + " não identificado.";
             case 3001:
                 return "Autenticação etapa 2 iniciada para " + login + ".";
             case 3002:

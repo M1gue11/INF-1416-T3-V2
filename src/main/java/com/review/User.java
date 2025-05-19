@@ -1,5 +1,7 @@
 package com.review;
 
+import java.time.Instant;
+
 public class User {
     public Integer UID;
     public String nome;
@@ -31,5 +33,14 @@ public class User {
 
     public boolean isAllowed(String group) {
         return this.grupo.equals(group) || this.grupo.equals("Administrador");
+    }
+
+    public boolean isBloqueado() {
+        if (ultimo_bloqueio_ts == null) {
+            return false;
+        }
+        long now = Instant.now().getEpochSecond();
+        long diff = now - ultimo_bloqueio_ts;
+        return diff < 120;
     }
 }
