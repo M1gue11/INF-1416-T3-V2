@@ -42,8 +42,6 @@ public class LogView extends Application {
                 String separator = logTextArea.getText().isEmpty() ? "" : "\n";
                 logTextArea.setText(separator + logsConcatenados);
             }
-
-            System.out.println(System.currentTimeMillis());
         });
 
         HBox buttonsContainer = new HBox(70, clearButton, updateButton,closeButton);

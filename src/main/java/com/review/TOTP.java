@@ -95,6 +95,7 @@ public class TOTP {
     // relógio da máquina que gerou o código TOTP.
     public boolean validateCode(String inputTOTP) {
         if (inputTOTP == null || inputTOTP.length() != 6) {
+            System.out.println("OIIIIII");
             return false;
         }
 
@@ -108,6 +109,7 @@ public class TOTP {
         // compensar o desvio do relógio)
         for (int i = -1; i <= 1; i++) {
             String generatedCode = TOTPCode(currentInterval + i);
+            System.out.println("Generated Code: " + generatedCode);
             if (inputTOTP.equals(generatedCode)) {
                 return true;
             }

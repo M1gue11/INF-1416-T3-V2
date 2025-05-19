@@ -4,23 +4,49 @@ import java.security.cert.X509Certificate;
 
 public class ExecutionPipeline {
     static ExecutionPipeline instance = null;
-    private String passphrase = null;
+    private String AdmPassphrase = null;
+    private String password = null;
+    public User user = null;
+    public boolean isLogado;
 
-    public void setPassphrase(String passphrase) {
+    public void logout() {
+        ExecutionPipeline.instance = new ExecutionPipeline();
+        this.user = new User();
+        this.user.fetchDefault();
+    }
+
+    public String getPassword() {
+        if (this.password == null) {
+            throw new IllegalStateException("Password not set");
+        }
+        return this.password;
+    }
+
+    public void setPassword(String password) {
+        if (password == null || password.isEmpty()) {
+            throw new IllegalArgumentException("Password cannot be null or empty");
+        }
+        if (this.password != null) {
+            throw new IllegalArgumentException("Password already set");
+        }
+        this.password = password;
+    }
+
+    public void setAdmPassphrase(String passphrase) {
         if (passphrase == null || passphrase.isEmpty()) {
             throw new IllegalArgumentException("Passphrase cannot be null or empty");
         }
-        if (this.passphrase != null) {
+        if (this.AdmPassphrase != null) {
             throw new IllegalArgumentException("Passphrase already set");
         }
-        this.passphrase = passphrase;
+        this.AdmPassphrase = passphrase;
     }
 
-    public String getPassphrase() {
-        if (this.passphrase == null) {
+    public String getAdmPassphrase() {
+        if (this.AdmPassphrase == null) {
             throw new IllegalStateException("Passphrase not set");
         }
-        return this.passphrase;
+        return this.AdmPassphrase;
     }
 
     public static ExecutionPipeline getInstance() {
@@ -35,7 +61,6 @@ public class ExecutionPipeline {
     }
 
     public boolean isFirstAccess() {
-        System.out.println(DatabaseManager.getNumberOfUsers());
         return DatabaseManager.getNumberOfUsers() == 0;
     }
 
@@ -92,5 +117,36 @@ public class ExecutionPipeline {
             e.printStackTrace();
             return new RetornoCadastro(-1, null, null);
         }
+    }
+
+    public boolean isValidTOTP(String codigoTotp) {
+        if (codigoTotp == null || codigoTotp.isEmpty() || codigoTotp.length() != 6) {
+            return false;
+        }
+        return InputValidation.isValidTOTP(codigoTotp, user.chave_totp_cript, this.password);
+    }
+
+    public boolean bypassLogin() {
+        this.user = DatabaseManager.getUserByEmail("teste@teste.com");
+        this.password = "12345678";
+        this.AdmPassphrase = "teste";
+        return true;
+    }
+
+    public void listFiles(String caminhoPasta, String fraseSecretaAdm) {
+        if (!InputValidation.isValidPath(caminhoPasta)) {
+            return;
+        }
+        Chaveiro admChaveiro = DatabaseManager.getChaveiroSuperAdm();
+        boolean isValidPassphrase = InputValidation.pkAndCaMatchPassphrase(
+                fraseSecretaAdm, admChaveiro.caminho_certificado,
+                admChaveiro.caminho_chave_privada, true);
+        if (!isValidPassphrase) {
+            // TODO: log
+            System.out.println("Frase secreta do adm inválida");
+            return;
+        }
+
+        InputValidation.isValidPhrase(fraseSecretaAdm);
     }
 }

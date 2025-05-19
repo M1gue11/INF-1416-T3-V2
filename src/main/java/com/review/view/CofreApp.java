@@ -34,6 +34,7 @@ public class CofreApp extends Application {
     public User user = new User();
     private ExecutionPipeline pipeline = ExecutionPipeline.getInstance();
     private boolean isFirstAccess = pipeline.isFirstAccess();
+    private static final boolean bypassLogin = true;
 
     public void start(Stage primaryStage) {
         this.primaryStage = primaryStage;
@@ -43,8 +44,12 @@ public class CofreApp extends Application {
         if (isFirstAccess) {
             showCadastroPage();
         } else {
-            //showTOTPPage();
-            showHomePage(user);
+            if (bypassLogin) {
+                pipeline.bypassLogin();
+                showHomePage();
+            } else {
+                showPassphrasePage();
+            }
         }
 
         primaryStage.setTitle("Cofre digital");
@@ -58,6 +63,18 @@ public class CofreApp extends Application {
         Button confirmarButton = new Button("Confirmar código");
         confirmarButton.setOnAction(e -> {
             String codigoTotp = ((TextField) campoCodigoTotp.getChildren().get(1)).getText();
+            boolean isOk = pipeline.isValidTOTP(codigoTotp);
+            pipeline.isLogado = true;
+            if (isOk) {
+                showHomePage();
+            } else {
+                // TODO: log e contabilizar quantidade de tentativas
+                Alert a = new Alert(Alert.AlertType.ERROR);
+                a.setTitle("Erro");
+                a.setHeaderText("Código inválido.");
+                a.showAndWait();
+            }
+
         });
 
         Button voltarButton = new Button("Voltar");
@@ -80,27 +97,63 @@ public class CofreApp extends Application {
         primaryStage.setScene(scene);
     }
 
-    private void showHomePage(User user) {
+    private void showHomePage() {
         Label label = new Label("Menu principal");
-        VBox header = new HeaderComponent(user);
+        VBox header = new HeaderComponent(pipeline.user);
         Button toCadastro = new Button("Cadastrar novo usuário");
+        // desativa se nao for admin
+        toCadastro.setDisable(!pipeline.user.isAdmin());
         Button toConsulta = new Button("Consultar arquivos");
         Button toLogout = new Button("Logout");
+        Label userAcssesCount = new Label(
+                "Total de acessos do usuário: " + Integer.toString(pipeline.user.numero_acessos));
         Button openLogs = new Button("Visualizar Logs");
 
-        Label userAcssesCount = new Label("Total de acessos do usuário: " + Integer.toString(user.numero_acessos));
         toCadastro.setOnAction(e -> showCadastroPage());
 
-        // modificar para rodar uma função de reset antes
-        toLogout.setOnAction(e -> primaryStage.close());
-
+        toLogout.setOnAction(e -> {
+            pipeline.logout();
+            showLoginPage();
+        });
+        toConsulta.setOnAction(e -> showFilesPage());
         openLogs.setOnAction(e -> {
             LogView logView = new LogView();
             // Abre em um novo Stage
             logView.start(new Stage());
         });
 
-            VBox layout = new VBox(10, label, header, userAcssesCount, toCadastro, toConsulta,openLogs, toLogout);
+        VBox layout = new VBox(10, header, userAcssesCount, label, toCadastro, toConsulta, openLogs,toLogout);
+        layout.setAlignment(javafx.geometry.Pos.CENTER);
+
+        Scene scene = new Scene(layout, 400, 300);
+        primaryStage.setScene(scene);
+    }
+
+    private void showFilesPage() {
+        Label label = new Label("Arquivos Secretos");
+        VBox header = new HeaderComponent(pipeline.user);
+
+        // TODO: colocar total_de_consultas_do_usuario no banco
+        Label totalConsultas = new Label(
+                "Total de consultas do usuário: 0");
+
+        HBox campoCaminhoPasta = new HBox(10, new Label("Caminho da pasta: "), new TextField());
+        HBox campoFraseSecreta = new HBox(10, new Label("Frase secreta: "), new TextField());
+
+        Button botaoListar = new Button("Listar");
+        Button botaoVoltar = new Button("Voltar");
+        botaoVoltar.setOnAction(e -> showHomePage());
+
+        botaoListar.setOnAction(e -> {
+            String caminhoPasta = ((TextField) campoCaminhoPasta.getChildren().get(1)).getText();
+            String fraseSecreta = ((TextField) campoFraseSecreta.getChildren().get(1)).getText();
+            pipeline.listFiles(caminhoPasta, fraseSecreta);
+        });
+
+        VBox layout = new VBox(10, header, totalConsultas, label, campoCaminhoPasta, campoFraseSecreta, botaoListar,
+                botaoVoltar);
+
+
         layout.setAlignment(javafx.geometry.Pos.CENTER);
 
         Scene scene = new Scene(layout, 400, 300);
@@ -123,7 +176,7 @@ public class CofreApp extends Application {
     private void showCadastroPage() {
         Label titleLabel = new Label("Cadastro");
         // Add more components as needed
-        VBox header = new HeaderComponent(user);
+        VBox header = new HeaderComponent(pipeline.user);
         HBox campoCaminhoCertificado = new HBox(10, new Label("Caminho do certificado: "), new TextField());
         HBox campoCaminhoChavePrivada = new HBox(10, new Label("Caminho da chave privada: "), new TextField());
         HBox campoFraseSecreta = new HBox(10, new Label("Frase secreta: "), new TextField());
@@ -181,15 +234,14 @@ public class CofreApp extends Application {
         });
         HBox bottonButtons = new HBox(10, cadastrarButton);
 
-        if (!isFirstAccess) {
+        if (!isFirstAccess && pipeline.isLogado) {
             Button backButton = new Button("Voltar");
-            backButton.setOnAction(e -> showHomePage(user));
+            backButton.setOnAction(e -> showHomePage());
             bottonButtons.getChildren().add(backButton);
         }
 
-        /* Cria o objeto user */
-
-        Label userAcssesCount = new Label("Total de acessos do usuário: " + Integer.toString(user.acessosTotais));
+        Label userAcssesCount = new Label(
+                "Total de acessos do usuário: " + Integer.toString(pipeline.user.numero_acessos));
         Label formulario = new Label("Formulário de cadastro:");
 
         VBox layout = new VBox(20, titleLabel, header, userAcssesCount, formulario, campoCaminhoCertificado,
@@ -245,8 +297,6 @@ public class CofreApp extends Application {
         Label titleLabel = new Label("Login");
 
         HBox campoLogin = new HBox(10, new Label("Login: "), new TextField());
-        HBox campoFraseSecreta = new HBox(10, new Label("Frase secreta: "), new TextField());
-
         Label senhaLabel = new Label("Senha (selecione usando os botões): ");
 
         TextField senhaDisplay = new TextField();
@@ -256,8 +306,6 @@ public class CofreApp extends Application {
             valores.add(i);
         }
         java.util.Collections.shuffle(valores);
-
-        java.util.Map<Integer, int[]> valoresPorBotao = new java.util.HashMap<>();
 
         HBox botoesContainer = new HBox(10);
         List<Button> botoesSenha = new java.util.ArrayList<>();
@@ -306,15 +354,16 @@ public class CofreApp extends Application {
         Button loginButton = new Button("Entrar");
         loginButton.setOnAction(e -> {
             String login = ((TextField) campoLogin.getChildren().get(1)).getText();
-            String fraseSecreta = ((TextField) campoFraseSecreta.getChildren().get(1)).getText();
+            List<String> senhasPossiveis = arvore.gerarSequenciasNumericas();
+            User user = DatabaseManager.getUserByEmail(login);
 
-            List<String> bago = arvore.gerarSequenciasNumericas();
-            for (String b : bago) {
-                if(KeyManager.validarSenha(b, DatabaseManager.getPasswordByLogin(login))){
-                    // Todo definir funcionalidade correta
-                    System.out.println(b);
-                    System.out.println("Resultado encontrado!");
-                    continue;
+            // TODO: logs
+            for (String senha : senhasPossiveis) {
+                if (KeyManager.validarSenha(senha, user.senha_pessoal_hash)) {
+                    pipeline.setPassword(senha);
+                    pipeline.user = user;
+                    showTOTPPage();
+                    break;
                 }
             }
 
@@ -332,7 +381,7 @@ public class CofreApp extends Application {
         HBox buttonContainer = new HBox(10, encerrarButton, cadastroButton, loginButton);
         buttonContainer.setAlignment(javafx.geometry.Pos.CENTER);
 
-        VBox layout = new VBox(20, titleLabel, campoLogin, campoFraseSecreta, campoSenha,
+        VBox layout = new VBox(20, titleLabel, campoLogin, campoSenha,
                 botoesContainer, buttonContainer);
         layout.setAlignment(javafx.geometry.Pos.CENTER);
 

@@ -75,6 +75,17 @@ public class InputValidation {
         return phrase != null && !phrase.trim().isEmpty();
     }
 
+    public static boolean isValidTOTP(String totpCode, String totpCriptB32, String plainPassword) {
+        try {
+            String chaveTotp = PrivateKeyManager.decryptContentWithPhrase(totpCriptB32, plainPassword);
+            TOTP totpGen = new TOTP(chaveTotp, 30);
+            return totpGen.validateCode(totpCode);
+        } catch (Exception e) {
+            System.out.println("Erro ao validar TOTP: " + e.getMessage());
+            return false;
+        }
+    }
+
     public static boolean pkAndCaMatchPassphrase(String phrase, String caPath, String pkPath, boolean insertLog) {
         boolean isPhraseOk = isValidPhrase(phrase);
         if (!isPhraseOk) {

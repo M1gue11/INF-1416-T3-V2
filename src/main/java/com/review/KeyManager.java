@@ -240,7 +240,7 @@ public class KeyManager {
 
         // Parâmetros para o certificado
         String commonName = "CA de Teste";
-        String emailAddress = "admin@inf-puc.rio.com";
+        String emailAddress = "teste@teste.com";
         String orgUnit = "MIANPL";
         String organization = "MIANPL LTDA.";
         String locality = "Rio de Janeiro";
