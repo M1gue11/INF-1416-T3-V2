@@ -78,13 +78,14 @@ public class InputValidation {
     public static boolean pkAndCaMatchPassphrase(String phrase, String caPath, String pkPath, boolean insertLog) {
         boolean isPhraseOk = isValidPhrase(phrase);
         if (!isPhraseOk) {
+            // TODO: log
             System.out.println("Frase secreta inválida");
             return false;
         }
 
         try {
             byte[] pk = PrivateKeyManager.decryptPkFile(pkPath, phrase);
-            X509Certificate cert = PrivateKeyManager.loadCertificateFromFile(caPath);
+            X509Certificate cert = PrivateKeyManager.loadCaFromFile(caPath);
             boolean isMatchCaAndPk = PrivateKeyManager.validatePrivateKeyWithCertificate(pk, cert, "RSA");
             return isMatchCaAndPk;
 

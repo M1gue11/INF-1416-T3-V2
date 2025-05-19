@@ -66,6 +66,31 @@ public class DatabaseManager {
         }
     }
 
+    public static Chaveiro getChaveiroByKID(int kid) {
+        String sql = "SELECT * FROM Chaveiro WHERE KID = ?";
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, kid);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                Chaveiro chaveiro = new Chaveiro();
+                chaveiro.KID = rs.getInt("KID");
+                chaveiro.caminho_certificado = rs.getString("caminho_certificado");
+                chaveiro.caminho_chave_privada = rs.getString("caminho_chave_privada");
+
+                return chaveiro;
+            } else {
+                System.out.println("Chaveiro não encontrado.");
+                return null; // Ou retornar um Chaveiro com valores default
+            }
+        } catch (SQLException e) {
+            System.err.println("Erro ao buscar chaveiro: " + e.getMessage());
+            return null; // Ou lançar a exceção novamente
+        }
+    }
+
     public static User getUserByEmail(String email) {
         String sql = "SELECT * FROM Usuario WHERE email = ?";
         try (Connection conn = DriverManager.getConnection(DB_URL);
@@ -121,9 +146,10 @@ public class DatabaseManager {
             String senhaHash,
             String grupo,
             String caminhoCertificado,
-            String caminhoChavePrivada) {
+            String caminhoChavePrivada,
+            String chaveTotpCript) {
         String sqlChaveiro = "INSERT INTO Chaveiro (caminho_certificado, caminho_chave_privada) VALUES (?, ?)";
-        String sqlUsuario = "INSERT INTO Usuario (nome, email, senha_pessoal_hash, grupo, KID, numero_acessos) VALUES (?, ?, ?, ?, ?, ?)";
+        String sqlUsuario = "INSERT INTO Usuario (nome, email, senha_pessoal_hash, grupo, KID, numero_acessos, chave_totp_cript) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
             conn.setAutoCommit(false);
 
@@ -149,11 +175,12 @@ public class DatabaseManager {
                         Statement.RETURN_GENERATED_KEYS)) {
                     int numero_acessos = 0;
                     pstmtUsuario.setString(1, nome);
-                    pstmtUsuario.setString(2, email);
+                    pstmtUsuario.setString(2, email.toLowerCase());
                     pstmtUsuario.setString(3, senhaHash);
                     pstmtUsuario.setString(4, grupo);
                     pstmtUsuario.setInt(5, KID);
                     pstmtUsuario.setInt(6, numero_acessos);
+                    pstmtUsuario.setString(7, chaveTotpCript);
                     pstmtUsuario.executeUpdate();
 
                     ResultSet rs = pstmtUsuario.getGeneratedKeys();
@@ -274,6 +301,47 @@ public class DatabaseManager {
         return -1;
     }
 
+    public static ResultSet executeSql(String sql) {
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+                Statement stmt = conn.createStatement()) {
+
+            return stmt.executeQuery(sql);
+        } catch (SQLException e) {
+            System.err.println("Erro ao executar SQL: " + e.getMessage());
+            return null;
+        }
+    }
+
+    public static User getSuperAdmin() {
+        String sql = "SELECT * FROM Usuario ORDER BY UID LIMIT 1";
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                User user = new User();
+                user.UID = rs.getInt("UID");
+                user.nome = rs.getString("nome");
+                user.email = rs.getString("email");
+                user.senha_pessoal_hash = rs.getString("senha_pessoal_hash");
+                user.grupo = rs.getString("grupo");
+                user.KID = rs.getInt("KID");
+                user.numero_acessos = rs.getInt("numero_acessos");
+                user.ultimo_bloqueio_ts = rs.getInt("ultimo_bloqueio_ts");
+                user.chave_totp_cript = rs.getString("chave_totp_cript");
+
+                return user;
+            } else {
+                System.out.println("SuperAdmin não encontrado.");
+                return null;
+            }
+        } catch (SQLException e) {
+            System.err.println("Erro ao buscar SuperAdmin: " + e.getMessage());
+            return null;
+        }
+    }
+
     public static List<String> getMessagesAndTimeByActualTime(long time){
         List<String> logs = new ArrayList<>();
         Connection conn = null;
@@ -287,13 +355,11 @@ public class DatabaseManager {
             String sql = "SELECT m.conteudo, r.data_hora " +
                     "FROM Registro r " +
                     "JOIN Mensagem m ON r.MID = m.MID " +
-                    "WHERE r.data_hora >= ? " +
                     "ORDER BY r.data_hora ASC";
 
             stmt = conn.prepareStatement(sql);
 
             // Converter o timestamp em milissegundos para um objeto Timestamp do SQL
-            stmt.setTimestamp(1, new Timestamp(time));
 
             rs = stmt.executeQuery();
 

@@ -40,7 +40,7 @@ public class LogView extends Application {
             // Adiciona apenas se houver logs
             if (!logs.isEmpty()) {
                 String separator = logTextArea.getText().isEmpty() ? "" : "\n";
-                logTextArea.appendText(separator + logsConcatenados);
+                logTextArea.setText(separator + logsConcatenados);
             }
 
             System.out.println(System.currentTimeMillis());
