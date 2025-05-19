@@ -17,6 +17,8 @@ import java.security.cert.X509Certificate;
 import java.util.Calendar;
 import java.util.Date;
 
+import javax.crypto.Cipher;
+
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -234,6 +236,20 @@ public class KeyManager {
             System.err.println("Ocorreu um erro inesperado: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    public static byte[] decryptContentWithRSA(byte[] content, PrivateKey pk) throws Exception {
+        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        cipher.init(Cipher.DECRYPT_MODE, pk);
+        byte[] decryptedContent = cipher.doFinal(content);
+        return decryptedContent;
+    }
+
+    public static byte[] encryptContentWithRSA(byte[] content, PublicKey pk) throws Exception {
+        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        cipher.init(Cipher.ENCRYPT_MODE, pk);
+        byte[] encryptedContent = cipher.doFinal(content);
+        return encryptedContent;
     }
 
     public static void generateDefaultCA() {

@@ -1,10 +1,11 @@
 package com.review;
 
+import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 
 public class ExecutionPipeline {
     static ExecutionPipeline instance = null;
-    private String AdmPassphrase = null;
+    private PrivateKey AdmPassphrase = null;
     private String password = null;
     public User user = null;
     public boolean isLogado;
@@ -32,17 +33,7 @@ public class ExecutionPipeline {
         this.password = password;
     }
 
-    public void setAdmPassphrase(String passphrase) {
-        if (passphrase == null || passphrase.isEmpty()) {
-            throw new IllegalArgumentException("Passphrase cannot be null or empty");
-        }
-        if (this.AdmPassphrase != null) {
-            throw new IllegalArgumentException("Passphrase already set");
-        }
-        this.AdmPassphrase = passphrase;
-    }
-
-    public String getAdmPassphrase() {
+    public PrivateKey getAdmPassphrase() {
         if (this.AdmPassphrase == null) {
             throw new IllegalStateException("Passphrase not set");
         }
@@ -129,7 +120,7 @@ public class ExecutionPipeline {
     public boolean bypassLogin() {
         this.user = DatabaseManager.getUserByEmail("teste@teste.com");
         this.password = "12345678";
-        this.AdmPassphrase = "teste";
+        this.AdmPassphrase = null;
         return true;
     }
 
@@ -145,6 +136,15 @@ public class ExecutionPipeline {
             // TODO: log
             System.out.println("Frase secreta do adm inválida");
             return;
+        }
+        try {
+            this.AdmPassphrase = PrivateKeyManager.decryptAndReturnPk(admChaveiro.caminho_chave_privada,
+                    fraseSecretaAdm);
+            // TODO: incrementar total de consultas do usuario
+
+        } catch (Exception e) {
+            // e.printStackTrace();
+            System.err.println("Erro ao listar arquivos: " + e.getMessage());
         }
 
         InputValidation.isValidPhrase(fraseSecretaAdm);

@@ -151,6 +151,12 @@ public class PrivateKeyManager {
         return keyFactory.generatePrivate(keySpec);
     }
 
+    public static PrivateKey decryptAndReturnPk(String encryptedPrivateKeyFilePath, String passphrase)
+            throws Exception {
+        byte[] decryptedPrivateKeyBytes = decryptPkFile(encryptedPrivateKeyFilePath, passphrase);
+        return loadPkFromBytes(decryptedPrivateKeyBytes, "RSA");
+    }
+
     public static X509Certificate loadCaFromFile(String certificateFilePath) throws Exception {
         CertificateFactory cf = CertificateFactory.getInstance("X.509");
         byte[] certBytes = Files.readAllBytes(Paths.get(certificateFilePath));
