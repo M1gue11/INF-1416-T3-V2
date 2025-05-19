@@ -27,6 +27,10 @@ import javafx.scene.image.ImageView;
 import javafx.embed.swing.SwingFXUtils;
 
 import java.util.List;
+import java.util.Optional;
+
+import com.review.DatabaseManager;
+import static com.review.DatabaseManager.insereLog;
 
 public class CofreApp extends Application {
 
@@ -38,15 +42,16 @@ public class CofreApp extends Application {
 
     public void start(Stage primaryStage) {
         this.primaryStage = primaryStage;
-
+        insereLog(1001, Optional.empty(), Optional.empty());
         // Cria a cena inicial com um user aleatorio
         user.fetchDefault();
         if (isFirstAccess) {
+            insereLog(1005, Optional.empty(), Optional.empty());
             showCadastroPage();
         } else {
             if (bypassLogin) {
                 pipeline.bypassLogin();
-                showHomePage();
+                showFilesPage();
             } else {
                 showPassphrasePage();
             }
@@ -264,6 +269,7 @@ public class CofreApp extends Application {
             boolean isOk = pipeline.admPassphraseValidation(fraseSecreta);
             if (isOk) {
                 // pipeline.setPassphrase(fraseSecreta);
+                insereLog(1006, Optional.empty(), Optional.empty());
                 showLoginPage();
             } else {
                 Alert a = new Alert(Alert.AlertType.ERROR);
