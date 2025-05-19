@@ -41,6 +41,7 @@ public class CofreApp extends Application {
     private ExecutionPipeline pipeline = ExecutionPipeline.getInstance();
     private boolean isFirstAccess = pipeline.isFirstAccess();
     private static final boolean bypassLogin = false;
+    private int toptCount = 0;
 
     public void start(Stage primaryStage) {
         this.primaryStage = primaryStage;
@@ -49,6 +50,7 @@ public class CofreApp extends Application {
             insereLog(1005, Optional.empty(), Optional.empty());
             showCadastroPage();
         } else {
+            insereLog(1006, Optional.empty(), Optional.empty());
             if (bypassLogin) {
                 pipeline.bypassLogin();
                 showHomePage();
@@ -62,6 +64,8 @@ public class CofreApp extends Application {
     }
 
     private void showTOTPPage() {
+        insereLog(3002, null, Optional.of(pipeline.user));
+        insereLog(4001, null, Optional.of(pipeline.user));
         Label titleLabel = new Label("Verificação de dois fatores");
         HBox campoCodigoTotp = new HBox(10, new Label("Codigo de autenticação: "), new TextField());
 
@@ -71,9 +75,14 @@ public class CofreApp extends Application {
             boolean isOk = pipeline.isValidTOTP(codigoTotp);
             pipeline.isLogado = true;
             if (isOk) {
+                insereLog(4003, null, Optional.of(pipeline.user));
+                insereLog(4002, null, Optional.of(pipeline.user));
+                this.toptCount = 0;
                 showHomePage();
             } else {
-                // TODO: log e contabilizar quantidade de tentativas
+                // TODO: falta fazer a logica de bloqueio
+                this.toptCount++;
+                insereLog(4003 + this.toptCount, null, Optional.of(pipeline.user));
                 Alert a = new Alert(Alert.AlertType.ERROR);
                 a.setTitle("Erro");
                 a.setHeaderText("Código inválido.");
@@ -103,6 +112,7 @@ public class CofreApp extends Application {
     }
 
     private void showHomePage() {
+        insereLog(5001, null, Optional.of(pipeline.user));
         Label label = new Label("Menu principal");
         VBox header = new HeaderComponent(pipeline.user);
         Button toCadastro = new Button("Cadastrar novo usuário");
@@ -114,16 +124,23 @@ public class CofreApp extends Application {
                 "Total de acessos do usuário: " + Integer.toString(pipeline.user.numero_acessos));
         Button openLogs = new Button("Visualizar Logs");
 
-        toCadastro.setOnAction(e -> showCadastroPage());
+        toCadastro.setOnAction(e -> {
+            insereLog(5002, Optional.empty(), Optional.of(pipeline.user));
+            showCadastroPage();
+        });
 
         toLogout.setOnAction(e -> {
+            insereLog(5004, Optional.empty(), Optional.of(pipeline.user));
+            insereLog(8003, Optional.empty(), Optional.of(pipeline.user));
             pipeline.logout();
             showPassphrasePage();
         });
-        toConsulta.setOnAction(e -> showFilesPage());
+        toConsulta.setOnAction(e -> {
+            insereLog(5003, Optional.empty(), Optional.of(pipeline.user));
+            showFilesPage();
+        });
         openLogs.setOnAction(e -> {
             LogView logView = new LogView();
-            // Abre em um novo Stage
             logView.start(new Stage());
         });
 
@@ -214,6 +231,9 @@ public class CofreApp extends Application {
     private void showCadastroPage() {
         Label titleLabel = new Label("Cadastro");
         // Add more components as needed
+        if(!isFirstAccess && pipeline.isLogado) {
+            insereLog(6001, Optional.empty(), Optional.of(pipeline.user));
+        }
         VBox header = new HeaderComponent(pipeline.user);
         HBox campoCaminhoCertificado = new HBox(10, new Label("Caminho do certificado: "), new TextField());
         HBox campoCaminhoChavePrivada = new HBox(10, new Label("Caminho da chave privada: "), new TextField());
@@ -224,6 +244,9 @@ public class CofreApp extends Application {
 
         Button cadastrarButton = new Button("Cadastrar");
         cadastrarButton.setOnAction(e -> {
+            if(!isFirstAccess && pipeline.isLogado){
+                insereLog(6002, Optional.empty(), Optional.of(pipeline.user));
+            }
             String caminhoCertificado = ((TextField) campoCaminhoCertificado.getChildren().get(1)).getText();
             String caminhoChavePrivada = ((TextField) campoCaminhoChavePrivada.getChildren().get(1)).getText();
             String fraseSecreta = ((TextField) campoFraseSecreta.getChildren().get(1)).getText();
@@ -234,7 +257,12 @@ public class CofreApp extends Application {
                     fraseSecreta, grupo, senha,
                     confirmacaoSenha);
 
-            Alert a = new Alert(retCadastro.uid == -1 ? Alert.AlertType.ERROR : Alert.AlertType.CONFIRMATION);
+            Alert a;
+            if (retCadastro.uid == -1) {
+                a = new Alert(Alert.AlertType.ERROR);
+            } else {
+                a = new Alert(Alert.AlertType.CONFIRMATION);
+            }
             a.setTitle("Cadastro");
             a.setHeaderText(retCadastro.uid == -1 ? "Erro ao cadastrar usuário" : "Usuário cadastrado com sucesso");
             a.setOnCloseRequest(exit -> {
@@ -334,6 +362,8 @@ public class CofreApp extends Application {
         primaryStage.setScene(scene);
     }
 
+    private int passwordLoginCount = 0; // Moved count to an instance variable
+
     private void showLoginPage() {
         List<Integer> botoesPressionados = new java.util.ArrayList<>();
         List<Integer> valores = new java.util.ArrayList<>();
@@ -398,28 +428,43 @@ public class CofreApp extends Application {
 
         Button loginButton = new Button("Entrar");
         loginButton.setOnAction(e -> {
+            insereLog(2001, null, null);
             loginButton.setDisable(true);
             String login = ((TextField) campoLogin.getChildren().get(1)).getText();
             List<String> senhasPossiveis = arvore.gerarSequenciasNumericas();
             User user = DatabaseManager.getUserByEmail(login);
             if (user == null) {
-                // TODO: log
+                user = new User();
+                user.email = login;
+                insereLog(2005, null, Optional.of(user));
+                user = null;
                 Alert a = new Alert(Alert.AlertType.ERROR);
                 a.setTitle("Erro");
                 a.setHeaderText("Login ou senha inválidos.");
                 a.showAndWait();
                 loginButton.setDisable(false);
                 return;
+                //TODO: como logar o bloqueado
             }
-            // TODO: logs
+            insereLog(2003, null, Optional.of(user));
+            insereLog(2002, null, null);
+            insereLog(3001, null, Optional.of(user));
             for (String senha : senhasPossiveis) {
                 if (KeyManager.validarSenha(senha, user.senha_pessoal_hash)) {
                     pipeline.setPassword(senha);
                     pipeline.user = user;
+                    this.passwordLoginCount = 0;
                     showTOTPPage();
                     break;
                 }
             }
+            this.passwordLoginCount++;
+            insereLog(3003 +this.passwordLoginCount, null, Optional.of(user));
+            if(this.passwordLoginCount >=3){
+                //ToDo: bloquear o usuario
+                insereLog(3007, null, Optional.of(user));
+            }
+            insereLog(3002, null, Optional.of(user));
             loginButton.setDisable(false);
         });
         Button cadastroButton = new Button("Cadastrar");

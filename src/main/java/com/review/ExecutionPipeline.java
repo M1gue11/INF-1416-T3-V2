@@ -4,11 +4,13 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
 import java.util.List;
+import java.util.Optional;
 
 import javax.crypto.SecretKey;
 
 import com.review.Files.Arquivo;
 import com.review.Files.Index;
+import com.review.DatabaseManager;
 
 public class ExecutionPipeline {
     static ExecutionPipeline instance = null;
@@ -81,13 +83,43 @@ public class ExecutionPipeline {
         try {
             X509Certificate cert = PrivateKeyManager.loadCaFromFile(caminhoCert);
             String email = PrivateKeyManager.getEmailFromCA(cert);
-            boolean isFormOk = InputValidation.isValidCAFilePath(caminhoCert, "certificado")
-                    && InputValidation.isValidPkFilePath(caminhoPk, "chave_privada")
-                    && InputValidation.isValidGroup(gp)
-                    && InputValidation.isValidPassword(senha, confirmacaoSenha)
-                    && InputValidation.isValidEmail(email)
-                    && InputValidation.pkAndCaMatchPassphrase(fraseSec, caminhoCert, caminhoPk,
-                            true);
+            boolean isFormOk = true;
+
+            if (!InputValidation.isValidCAFilePath(caminhoCert, "certificado")) {
+                isFormOk = false;
+                DatabaseManager.insereLog(6004, Optional.empty(), Optional.of(user));
+                System.out.println("Erro: Caminho do certificado inválido.");
+            }
+
+            if (!InputValidation.isValidPkFilePath(caminhoPk, "chave_privada")) {
+                isFormOk = false;
+                DatabaseManager.insereLog(6005, Optional.empty(), Optional.of(user));
+                System.out.println("Erro: Caminho da chave privada inválido.");
+            }
+
+            if (!InputValidation.isValidGroup(gp)) {
+                isFormOk = false;
+                // TODO: log
+                System.out.println("Erro: Grupo inválido.");
+            }
+
+            if (!InputValidation.isValidPassword(senha, confirmacaoSenha)) {
+                isFormOk = false;
+                DatabaseManager.insereLog(6003, Optional.empty(), Optional.of(user));
+                System.out.println("Erro: Senha inválida ou não coincide com a confirmação.");
+            }
+
+            if (!InputValidation.isValidEmail(email)) {
+                isFormOk = false;
+                // TODO: log
+                System.out.println("Erro: Email inválido.");
+            }
+
+            if (!InputValidation.pkAndCaMatchPassphrase(fraseSec, caminhoCert, caminhoPk, true)) {
+                isFormOk = false;
+                DatabaseManager.insereLog(6007, Optional.empty(), Optional.of(user));
+                System.out.println("Erro: A frase secreta não corresponde ao certificado e chave privada.");
+            }
 
             if (!isFormOk) {
                 // TODO: log
@@ -105,9 +137,12 @@ public class ExecutionPipeline {
             int uid = DatabaseManager.cadastrarUsuario(nome, email.toLowerCase(), senhaHash, safeGroupName,
                     caminhoCert, caminhoPk,
                     chaveB32Cript);
+            
+            DatabaseManager.insereLog(6008, Optional.empty(), Optional.of(user));
             return new RetornoCadastro(uid, chaveB32, email);
 
         } catch (Exception e) {
+            DatabaseManager.insereLog(6009, Optional.empty(), Optional.of(user));
             e.printStackTrace();
             return new RetornoCadastro(-1, null, null);
         }
