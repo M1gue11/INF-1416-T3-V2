@@ -6,7 +6,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class DatabaseManager {
-    private static final String DB_URL = "jdbc:sqlite:cofre_digital.db";
+    private static final String DB_URL_PREFIX = "jdbc:sqlite:";
+    private static String DB_URL = DB_URL_PREFIX + "db/cofre_digital.db";
 
     public static void initDatabase() {
         try (Connection conn = DriverManager.getConnection(DB_URL);
@@ -343,7 +344,7 @@ public class DatabaseManager {
         }
     }
 
-    public static List<String> getMessagesAndTimeByActualTime(long time){
+    public static List<String> getMessagesAndTimeByActualTime(long time) {
         List<String> logs = new ArrayList<>();
         Connection conn = null;
         PreparedStatement stmt = null;
@@ -376,14 +377,28 @@ public class DatabaseManager {
             e.printStackTrace();
         } finally {
             // Fechar recursos
-            try { if (rs != null) rs.close(); } catch (SQLException e) { e.printStackTrace(); }
-            try { if (stmt != null) stmt.close(); } catch (SQLException e) { e.printStackTrace(); }
-            try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
+            try {
+                if (rs != null)
+                    rs.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            try {
+                if (stmt != null)
+                    stmt.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            try {
+                if (conn != null)
+                    conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
 
         return logs;
     }
-
 
     public static Chaveiro getChaveiroSuperAdm() {
         User adm = getSuperAdmin();
