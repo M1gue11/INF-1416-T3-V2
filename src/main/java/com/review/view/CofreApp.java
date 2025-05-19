@@ -31,7 +31,6 @@ import java.util.List;
 public class CofreApp extends Application {
 
     private Stage primaryStage;
-    public User user = new User();
     private ExecutionPipeline pipeline = ExecutionPipeline.getInstance();
     private boolean isFirstAccess = pipeline.isFirstAccess();
     private static final boolean bypassLogin = true;
@@ -39,8 +38,6 @@ public class CofreApp extends Application {
     public void start(Stage primaryStage) {
         this.primaryStage = primaryStage;
 
-        // Cria a cena inicial com um user aleatorio
-        user.fetchDefault();
         if (isFirstAccess) {
             showCadastroPage();
         } else {
@@ -122,7 +119,7 @@ public class CofreApp extends Application {
             logView.start(new Stage());
         });
 
-        VBox layout = new VBox(10, header, userAcssesCount, label, toCadastro, toConsulta, openLogs,toLogout);
+        VBox layout = new VBox(10, header, userAcssesCount, label, toCadastro, toConsulta, openLogs, toLogout);
         layout.setAlignment(javafx.geometry.Pos.CENTER);
 
         Scene scene = new Scene(layout, 400, 300);
@@ -152,7 +149,6 @@ public class CofreApp extends Application {
 
         VBox layout = new VBox(10, header, totalConsultas, label, campoCaminhoPasta, campoFraseSecreta, botaoListar,
                 botaoVoltar);
-
 
         layout.setAlignment(javafx.geometry.Pos.CENTER);
 

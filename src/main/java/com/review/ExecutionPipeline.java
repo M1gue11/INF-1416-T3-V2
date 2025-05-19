@@ -49,6 +49,8 @@ public class ExecutionPipeline {
 
     private ExecutionPipeline() {
         DatabaseManager.initDatabase();
+        this.user = new User();
+        this.user.fetchDefault();
     }
 
     public boolean isFirstAccess() {

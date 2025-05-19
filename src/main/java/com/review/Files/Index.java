@@ -47,7 +47,7 @@ public class Index {
     public void processarEnvelope(PrivateKey admPk) {
         try {
             byte[] encryptedSeedPrng = Files.readAllBytes(Paths.get(this.indexPaths.envPath));
-            byte[] decrypted = KeyManager.decryptContentWithRSA(encryptedSeedPrng, admPk);
+            byte[] seedPrng = KeyManager.decryptContentWithRSA(encryptedSeedPrng, admPk);
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("Erro ao processar o envelope: " + e.getMessage());
