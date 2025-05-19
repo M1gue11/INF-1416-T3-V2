@@ -147,7 +147,6 @@ public class PrivateKeyManager {
     public static byte[] decryptPkFile(String encryptedPrivateKeyFilePath, String passphrase) throws Exception {
         SecretKey aesKey = deriveAesKeyFromGivenSeed(passphrase);
         byte[] encryptedPrivateKeyBytes = Files.readAllBytes(Paths.get(encryptedPrivateKeyFilePath));
-
         Cipher cipher = Cipher.getInstance(AES_TRANSFORMATION);
         cipher.init(Cipher.DECRYPT_MODE, aesKey);
         byte[] decryptedPrivateKeyBytes = cipher.doFinal(encryptedPrivateKeyBytes);

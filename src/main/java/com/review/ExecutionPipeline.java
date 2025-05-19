@@ -1,5 +1,8 @@
 package com.review;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
@@ -10,11 +13,13 @@ import java.util.Optional;
 import javax.crypto.SecretKey;
 
 import com.review.Files.Arquivo;
+import com.review.Files.ArquivoModel;
 import com.review.Files.Index;
 
 public class ExecutionPipeline {
     static ExecutionPipeline instance = null;
     private PrivateKey admPrivateKey = null;
+    private static final String DEFAULT_FILE_OUTPUT_FOLDER = "arquivos_output/";
     private String password = null;
     public User user = null;
     public boolean isLogado = false;
@@ -34,6 +39,14 @@ public class ExecutionPipeline {
 
     public boolean bypassLoginWithAdm() {
         this.user = DatabaseManager.getUserByEmail("teste@teste.com");
+        this.password = "12345678";
+        this.admPrivateKey = null;
+        confirmLogin();
+        return true;
+    }
+
+    public boolean bypassLoginWithUser1() {
+        this.user = DatabaseManager.getUserByEmail("miguel@gmail.com");
         this.password = "12345678";
         this.admPrivateKey = null;
         confirmLogin();
@@ -164,6 +177,77 @@ public class ExecutionPipeline {
             DatabaseManager.insereLog(6009, Optional.empty(), Optional.of(user));
             e.printStackTrace();
             return new RetornoCadastro(-1, null, null);
+        }
+    }
+
+    public void selecaoArquivo(ArquivoModel newSelection, String userPhrase, String caminhoPasta) {
+        Optional<String> optFile = Optional.of(newSelection.nomeCodigoArquivo.toString());
+        Optional<User> optUser = Optional.of(this.user);
+
+        DatabaseManager.insereLog(7010, optFile, optUser);
+
+        boolean isUserOwner = this.user.email.equals(newSelection.donoArquivo.getValue());
+        if (!isUserOwner) {
+            System.out.println("Arquivo pertence a outro usuario");
+            // TODO: mensagem
+            DatabaseManager.insereLog(7012, optFile, optUser);
+            return;
+        }
+
+        System.out.println("Arquivo pertence ao usuario logado");
+        try {
+            DatabaseManager.insereLog(7011, optFile, optUser);
+            Chaveiro chaveiroUser = DatabaseManager.getChaveiroByKID(this.user.KID);
+            if (!InputValidation.pkAndCaMatchPassphrase(userPhrase, chaveiroUser.caminho_certificado,
+                    chaveiroUser.caminho_chave_privada, true, this.user)) {
+                System.out.println("Erro: Assinatura digital invalida");
+                return;
+            }
+            PrivateKey pk = PrivateKeyManager.decryptAndReturnPk(chaveiroUser.caminho_chave_privada,
+                    userPhrase);
+            PublicKey ca = PrivateKeyManager.loadCaFromFile(chaveiroUser.caminho_certificado)
+                    .getPublicKey();
+            Index index = new Index(caminhoPasta, newSelection.nomeCodigoArquivo.getValue());
+            if (!index.processarDotAsd(ca)) {
+                System.out.println(
+                        "Erro ao processar arquivo .asd do arquivo selecionado: " + newSelection.nomeCodigoArquivo);
+                return;
+            }
+            DatabaseManager.insereLog(7014, optFile, optUser);
+            SecretKey aesKey = index.processarDotEnv(pk);
+            String conteudoArquivo = index.processarDotEnc(aesKey);
+            DatabaseManager.insereLog(7013, optFile, optUser);
+            System.out.println("Conteudo do arquivo: " + conteudoArquivo);
+
+            // escrevendo o conteudo do arquivo no disco
+            Path outputPath = Paths.get(DEFAULT_FILE_OUTPUT_FOLDER);
+            if (!Files.exists(outputPath)) {
+                Files.createDirectories(outputPath);
+            }
+            Path caminhoArquivo = Paths.get(DEFAULT_FILE_OUTPUT_FOLDER, newSelection.nomeSecretoArquivo.getValue());
+            Files.writeString(caminhoArquivo, conteudoArquivo);
+            System.out.println("Arquivo escrito em: " + caminhoArquivo.toAbsolutePath());
+        } catch (Exception e) {
+            System.out.println("Erro ao abrir arquivo selecionado: " + e.getMessage());
+            return;
+        }
+
+    }
+
+    public void limparArquivosDescriptografados() {
+        try {
+            Path outputPath = Paths.get(DEFAULT_FILE_OUTPUT_FOLDER);
+            if (Files.exists(outputPath)) {
+                Files.list(outputPath).forEach(file -> {
+                    try {
+                        Files.delete(file);
+                    } catch (Exception e) {
+                        System.out.println("Erro ao deletar arquivo: " + file + " - " + e.getMessage());
+                    }
+                });
+            }
+        } catch (Exception e) {
+            System.out.println("Erro ao limpar arquivos descriptografados: " + e.getMessage());
         }
     }
 

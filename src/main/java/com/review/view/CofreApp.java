@@ -41,7 +41,7 @@ public class CofreApp extends Application {
     private Stage primaryStage;
     private ExecutionPipeline pipeline = ExecutionPipeline.getInstance();
     private boolean isFirstAccess = pipeline.isFirstAccess();
-    private static final boolean bypassLogin = false;
+    private static final boolean bypassLogin = true;
     private int toptCount = 0;
 
     public void start(Stage primaryStage) {
@@ -53,7 +53,7 @@ public class CofreApp extends Application {
             showCadastroPage();
         } else {
             if (bypassLogin) {
-                pipeline.bypassLoginWithAdm();
+                pipeline.bypassLoginWithUser1();
                 showHomePage();
             } else {
                 insereLog(1006, Optional.empty(), Optional.empty());
@@ -198,11 +198,14 @@ public class CofreApp extends Application {
         Label totalConsultas = new Label("Total de consultas do usuário: " + pipeline.user.numero_consultas);
 
         HBox campoCaminhoPasta = new HBox(10, new Label("Caminho da pasta: "), new TextField());
-        HBox campoFraseSecreta = new HBox(10, new Label("Frase secreta: "), new TextField());
-
+        HBox campoFraseSecreta = new HBox(10, new Label("Frase secreta ADM: "), new TextField());
+        HBox campoFraseSecretaUser = new HBox(10, new Label("Sua secreta: "), new TextField());
         Button botaoListar = new Button("Listar");
         Button botaoVoltar = new Button("Voltar");
-        botaoVoltar.setOnAction(e -> showHomePage());
+        botaoVoltar.setOnAction(e -> {
+            showHomePage();
+            pipeline.limparArquivosDescriptografados();
+        });
 
         TableView<ArquivoModel> table = new TableView<>();
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY); // Faz as colunas preencherem a largura
@@ -240,14 +243,18 @@ public class CofreApp extends Application {
 
         // Evento de seleção
         table.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
-            if (newSelection != null) {
-                System.out.println("Arquivo selecionado: " + newSelection.nomeSecretoArquivo);
-                // Adicione aqui a lógica para quando um arquivo for selecionado
+            if (newSelection == null) {
+                System.out.println("Selecao de linha null");
+                return;
             }
+            // TODO: pegar a passphrase do usuario
+            String fraseUser = ((TextField) campoFraseSecretaUser.getChildren().get(1)).getText();
+            String caminhoPasta = ((TextField) campoCaminhoPasta.getChildren().get(1)).getText();
+            pipeline.selecaoArquivo(newSelection, fraseUser, caminhoPasta);
         });
 
         VBox layout = new VBox(10, header, totalConsultas, label, campoCaminhoPasta,
-                campoFraseSecreta, botaoListar, table, botaoVoltar);
+                campoFraseSecreta, campoFraseSecretaUser, botaoListar, table, botaoVoltar);
         layout.setAlignment(Pos.CENTER);
         VBox.setVgrow(table, Priority.ALWAYS); // Faz a tabela expandir verticalmente
 

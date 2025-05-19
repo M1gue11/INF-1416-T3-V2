@@ -3,6 +3,7 @@ package com.review.Files;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -28,13 +29,17 @@ public class Index {
         public String asdPath;
     }
 
-    private static IndexPaths getIndexPaths(String caminhoPasta) {
+    private static IndexPaths getFilesPaths(String caminhoPasta, String arquivo) {
         IndexPaths paths = new IndexPaths();
-        paths.envPath = Paths.get(caminhoPasta, "index.env").toString();
-        paths.encPath = Paths.get(caminhoPasta, "index.enc").toString();
-        paths.asdPath = Paths.get(caminhoPasta, "index.asd").toString();
+        paths.envPath = Paths.get(caminhoPasta, String.format("%s.env", arquivo)).toString();
+        paths.encPath = Paths.get(caminhoPasta, String.format("%s.enc", arquivo)).toString();
+        paths.asdPath = Paths.get(caminhoPasta, String.format("%s.asd", arquivo)).toString();
         // A verificação de existência é melhor feita antes de tentar ler/escrever
         return paths;
+    }
+
+    private static IndexPaths getIndexPaths(String caminhoPasta) {
+        return getFilesPaths(caminhoPasta, "index");
     }
 
     public Index(String caminhoPasta) {
@@ -51,17 +56,31 @@ public class Index {
         this.indexPaths = Index.getIndexPaths(caminhoPasta);
     }
 
-    public SecretKey processarDotEnv(PrivateKey admPk) throws Exception {
+    public Index(String caminhoPasta, String codigoArquivo) {
+        if (caminhoPasta == null || caminhoPasta.trim().isEmpty()) {
+            throw new IllegalArgumentException("Caminho da pasta não pode ser nulo ou vazio");
+        }
+        File folder = new File(caminhoPasta);
+        if (!folder.exists() || !folder.isDirectory()) {
+            // Tenta criar o diretório se não existir, para facilitar testes
+            if (!folder.mkdirs()) {
+                throw new IllegalArgumentException("Caminho da pasta inválido ou não pôde ser criado: " + caminhoPasta);
+            }
+        }
+        this.indexPaths = Index.getFilesPaths(caminhoPasta, codigoArquivo);
+    }
+
+    public SecretKey processarDotEnv(PrivateKey pk) throws Exception {
         byte[] encryptedSeedPrng = Files.readAllBytes(Paths.get(this.indexPaths.envPath));
-        byte[] seedPrngBytes = KeyManager.decryptContentWithRSA(encryptedSeedPrng, admPk);
+        byte[] seedPrngBytes = KeyManager.decryptContentWithRSA(encryptedSeedPrng, pk);
         return PrivateKeyManager.deriveAesKeyFromGivenSeed(seedPrngBytes);
     }
 
-    public boolean processarDotAsd(PublicKey admPbk) throws Exception {
+    public boolean processarDotAsd(PublicKey pk) throws Exception {
         byte[] conteudoCript = Files.readAllBytes(Paths.get(this.indexPaths.encPath));
         byte[] assinaturaBin = Files.readAllBytes(Paths.get(this.indexPaths.asdPath));
         Signature sig = Signature.getInstance("SHA256withRSA");
-        sig.initVerify(admPbk);
+        sig.initVerify(pk);
         sig.update(conteudoCript);
         boolean isValid = sig.verify(assinaturaBin);
         if (!isValid) {
@@ -211,10 +230,10 @@ public class Index {
      */
     public static void gerarIndiceDeTeste(String pastaDeTeste, PublicKey adminPublicKey, PrivateKey adminPrivateKey) {
         ArrayList<Arquivo> listaArquivosTeste = new ArrayList<>();
-        listaArquivosTeste.add(new Arquivo("cod1", "segredoA.txt", "usuario1@puc.br", "Usuario"));
-        listaArquivosTeste.add(new Arquivo("cod2", "relatorioX.docx", "admin@puc.br", "Administrador"));
-        listaArquivosTeste.add(new Arquivo("cod3", "foto_ferias.jpg", "usuario1@puc.br", "Usuario"));
-        listaArquivosTeste.add(new Arquivo("cod4", "backup.zip", "usuario2@puc.br", "Usuario"));
+        listaArquivosTeste.add(new Arquivo("cod1", "segredoA.txt", "miguel@gmail.com", "Usuario"));
+        listaArquivosTeste.add(new Arquivo("cod2", "relatorioX.docx", "teste@teste.com", "Administrador"));
+        listaArquivosTeste.add(new Arquivo("cod3", "foto_ferias.jpg", "miguel@gmail.com", "Usuario"));
+        listaArquivosTeste.add(new Arquivo("cod4", "backup.zip", "miguel@gmail.com", "Usuario"));
 
         String conteudoPlain = criarConteudoStringDoIndice(listaArquivosTeste);
         System.out.println("--- Conteúdo Plain do Índice de Teste ---");
@@ -229,21 +248,157 @@ public class Index {
         }
     }
 
+    /**
+     * Cria os arquivos .enc, .env e .asd para um único arquivo secreto.
+     *
+     * @param caminhoPastaDestino  Pasta onde os arquivos do segredo serão criados.
+     * @param nomeCodigoArquivo    O nome de código do arquivo (ex: "cod1").
+     * @param conteudoArquivoPlain O conteúdo em texto plano do arquivo secreto.
+     * @param donoPublicKey        Chave pública do dono do arquivo (para
+     *                             criptografar a semente/chave do .env).
+     * @param donoPrivateKey       Chave privada do dono do arquivo (para assinar o
+     *                             .enc -> .asd).
+     * @return true se os arquivos foram criados com sucesso, false caso contrário.
+     */
+    public static boolean criarArquivosDeSegredoIndividual(String caminhoPastaDestino,
+            String nomeCodigoArquivo,
+            String conteudoArquivoPlain,
+            PublicKey donoPublicKey,
+            PrivateKey donoPrivateKey) {
+        try {
+            File folder = new File(caminhoPastaDestino);
+            if (!folder.exists() && !folder.mkdirs()) {
+                System.err.println("Não foi possível criar a pasta de destino para o segredo: " + caminhoPastaDestino);
+                return false;
+            }
+
+            Path envPath = Paths.get(caminhoPastaDestino, nomeCodigoArquivo + ".env");
+            Path encPath = Paths.get(caminhoPastaDestino, nomeCodigoArquivo + ".enc");
+            Path asdPath = Paths.get(caminhoPastaDestino, nomeCodigoArquivo + ".asd");
+
+            // 1. Gerar uma semente aleatória para a chave AES deste arquivo secreto
+            SecureRandom sr = SecureRandom.getInstance("SHA1PRNG");
+            byte[] seedBytesArquivo = new byte[20]; // Semente para a chave AES do arquivo
+            sr.nextBytes(seedBytesArquivo);
+
+            // Derivar a chave AES a partir desta semente
+            SecretKey aesKeyParaArquivo = PrivateKeyManager.deriveAesKeyFromGivenSeed(seedBytesArquivo);
+
+            // 2. Criar <nomeCodigo>.env: Criptografar a semente (seedBytesArquivo) com a
+            // chave pública do DONO
+            byte[] encryptedSeedForFileEnv = KeyManager.encryptContentWithRSA(seedBytesArquivo, donoPublicKey);
+            Files.write(envPath, encryptedSeedForFileEnv);
+            // System.out.println(nomeCodigoArquivo + ".env criado.");
+
+            // 3. Criar <nomeCodigo>.enc: Criptografar o conteudoArquivoPlain com a
+            // aesKeyParaArquivo
+            byte[] plainFileBytes = conteudoArquivoPlain.getBytes(StandardCharsets.UTF_8);
+            byte[] encryptedFileContent = PrivateKeyManager.encryptContentWithAES(plainFileBytes, aesKeyParaArquivo);
+            Files.write(encPath, encryptedFileContent);
+            // System.out.println(nomeCodigoArquivo + ".enc criado.");
+
+            // 4. Criar <nomeCodigo>.asd: Assinar o encryptedFileContent com a chave privada
+            // do DONO
+            Signature sig = Signature.getInstance("SHA256withRSA");
+            sig.initSign(donoPrivateKey);
+            sig.update(encryptedFileContent); // Assinando o conteúdo do .enc do arquivo
+            byte[] signatureFileBytes = sig.sign();
+            Files.write(asdPath, signatureFileBytes);
+            // System.out.println(nomeCodigoArquivo + ".asd criado.");
+
+            return true;
+
+        } catch (Exception e) {
+            System.err.println(
+                    "Erro ao criar arquivos para o segredo individual " + nomeCodigoArquivo + ": " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public static void gerarIndiceDeTesteEArquivosSecretos(String pastaDeTeste,
+            PublicKey adminPublicKey, PrivateKey adminPrivateKey,
+            PublicKey userPublicKey, PrivateKey userPrivateKey) {
+        System.out.println("--- Iniciando Geração de Índice de Teste e Arquivos Secretos ---");
+
+        // 1. Definir os arquivos que estarão no índice
+        ArrayList<Arquivo> listaArquivosParaIndice = new ArrayList<>();
+        listaArquivosParaIndice
+                .add(new Arquivo("cod1_usr1", "documento_pessoal.txt", "miguel@gmail.com", "Usuario"));
+        listaArquivosParaIndice
+                .add(new Arquivo("cod2_adm", "config_sistema.dat", "teste@teste.com", "Administrador"));
+        listaArquivosParaIndice.add(new Arquivo("cod3_usr1", "notas_reuniao.md", "miguel@gmail.com", "Usuario"));
+        listaArquivosParaIndice
+                .add(new Arquivo("cod4_usr1", "foto_importante.txt", "miguel@gmail.com", "Usuario"));
+
+        // 2. Criar o conteúdo string do índice
+        String conteudoPlainDoIndice = criarConteudoStringDoIndice(listaArquivosParaIndice);
+        System.out.println("\n--- Conteúdo Plain do Índice ---");
+        System.out.println(conteudoPlainDoIndice);
+
+        // 3. Criar os arquivos de índice (index.env, index.enc, index.asd)
+        IndexPaths pathsIndiceCriados = criarArquivosDeIndice(pastaDeTeste, conteudoPlainDoIndice, adminPublicKey,
+                adminPrivateKey);
+        if (pathsIndiceCriados != null) {
+            System.out.println("\n--- Arquivos de Índice Globais Criados ---");
+            System.out.println("index.env, index.enc, index.asd em: " + pastaDeTeste);
+        } else {
+            System.err.println("Falha ao criar arquivos de índice globais.");
+            return; // Não podemos continuar se o índice não foi criado
+        }
+
+        // 4. Criar os arquivos secretos individuais (.env, .enc, .asd para cada um)
+        System.out.println("\n--- Criando Arquivos Secretos Individuais ---");
+        boolean sucessoArquivosSecretos = true;
+
+        // Arquivo de usuario1@exemplo.com
+        sucessoArquivosSecretos &= criarArquivosDeSegredoIndividual(pastaDeTeste, "cod1_usr1",
+                "Este é o conteúdo secreto do documento pessoal de usuario1.",
+                userPublicKey, userPrivateKey);
+        sucessoArquivosSecretos &= criarArquivosDeSegredoIndividual(pastaDeTeste, "cod4_usr1",
+                "Isso seria uma foto importante, mas está em texto.",
+                userPublicKey, userPrivateKey);
+
+        // Arquivo de admin@exemplo.com (neste caso, o admin é o dono)
+        sucessoArquivosSecretos &= criarArquivosDeSegredoIndividual(pastaDeTeste, "cod2_adm",
+                "Configurações secretas do sistema: python_path=userfiles/python.",
+                adminPublicKey, adminPrivateKey); // Admin usando suas próprias chaves como dono
+
+        // Arquivo de usuario2@exemplo.com
+        sucessoArquivosSecretos &= criarArquivosDeSegredoIndividual(pastaDeTeste, "cod3_usr1",
+                "# Notas da Reunião\n- Discutir item A\n- Revisar item B",
+                userPublicKey, userPrivateKey);
+
+        if (sucessoArquivosSecretos) {
+            System.out.println(
+                    "\nTodos os arquivos secretos individuais (.env, .enc, .asd) foram criados com sucesso na pasta: "
+                            + pastaDeTeste);
+        } else {
+            System.err.println("\nFalha ao criar um ou mais arquivos secretos individuais.");
+        }
+
+        System.out.println("\n--- Geração de Teste Concluída ---");
+    }
+
     public static void main(String[] args) throws Exception {
         // Para este teste funcionar, você precisa gerar um par de chaves RSA
         // e carregá-los aqui. Exemplo usando KeyPairGenerator:
-        Chaveiro admChav = DatabaseManager.getChaveiroSuperAdm();
-        String passphrase = "teste";
-
-        PrivateKey adminPrivateKey = PrivateKeyManager
-                .decryptAndReturnPk(admChav.caminho_chave_privada, passphrase);
-        PublicKey adminPublicKey = PrivateKeyManager.loadCaFromFile(admChav.caminho_certificado).getPublicKey();
-        System.out.println("chave publica: " + adminPublicKey.toString());
-
         String pastaParaTeste = "pasta_indice_teste"; // Será criada se não existir
 
+        Chaveiro admChav = DatabaseManager.getChaveiroSuperAdm();
+        String passphraseAdm = "teste";
+        PrivateKey adminPrivateKey = PrivateKeyManager
+                .decryptAndReturnPk(admChav.caminho_chave_privada, passphraseAdm);
+        PublicKey adminPublicKey = PrivateKeyManager.loadCaFromFile(admChav.caminho_certificado).getPublicKey();
+
+        Chaveiro chaveiroMiguel = DatabaseManager.getChaveiroByKID(2);
+        String passphraseMiguel = "miguel";
+        PrivateKey miguelPk = PrivateKeyManager
+                .decryptAndReturnPk(chaveiroMiguel.caminho_chave_privada, passphraseMiguel);
+        PublicKey miguelCA = PrivateKeyManager.loadCaFromFile(chaveiroMiguel.caminho_certificado).getPublicKey();
+
         // Testar a GERAÇÃO dos arquivos de índice
-        Index.gerarIndiceDeTeste(pastaParaTeste, adminPublicKey, adminPrivateKey);
+        Index.gerarIndiceDeTesteEArquivosSecretos(pastaParaTeste, adminPublicKey, adminPrivateKey, miguelCA, miguelPk);
 
         System.out.println("\n--- Testando a LEITURA dos arquivos de índice criados ---");
         // Testar a LEITURA dos arquivos de índice
