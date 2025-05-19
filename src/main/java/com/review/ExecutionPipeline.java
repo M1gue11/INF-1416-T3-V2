@@ -159,6 +159,7 @@ public class ExecutionPipeline {
         this.user = DatabaseManager.getUserByEmail("teste@teste.com");
         this.password = "12345678";
         this.admPrivateKey = null;
+        this.isLogado = true;
         return true;
     }
 

@@ -231,7 +231,7 @@ public class CofreApp extends Application {
     private void showCadastroPage() {
         Label titleLabel = new Label("Cadastro");
         // Add more components as needed
-        if(!isFirstAccess && pipeline.isLogado) {
+        if (!isFirstAccess && pipeline.isLogado) {
             insereLog(6001, Optional.empty(), Optional.of(pipeline.user));
         }
         VBox header = new HeaderComponent(pipeline.user);
@@ -244,7 +244,7 @@ public class CofreApp extends Application {
 
         Button cadastrarButton = new Button("Cadastrar");
         cadastrarButton.setOnAction(e -> {
-            if(!isFirstAccess && pipeline.isLogado){
+            if (!isFirstAccess && pipeline.isLogado) {
                 insereLog(6002, Optional.empty(), Optional.of(pipeline.user));
             }
             String caminhoCertificado = ((TextField) campoCaminhoCertificado.getChildren().get(1)).getText();
@@ -306,6 +306,7 @@ public class CofreApp extends Application {
         });
         HBox bottonButtons = new HBox(10, cadastrarButton);
 
+        System.out.println(isFirstAccess + "  " + pipeline.isLogado);
         if (!isFirstAccess && pipeline.isLogado) {
             Button backButton = new Button("Voltar");
             backButton.setOnAction(e -> showHomePage());
@@ -313,7 +314,7 @@ public class CofreApp extends Application {
         }
 
         Label userAcssesCount = new Label(
-                "Total de acessos do usuário: " + Integer.toString(pipeline.user.numero_acessos));
+                "Total de usuarios do sistema: " + DatabaseManager.getNumberOfUsers());
         Label formulario = new Label("Formulário de cadastro:");
 
         VBox layout = new VBox(20, titleLabel, header, userAcssesCount, formulario, campoCaminhoCertificado,
@@ -444,7 +445,7 @@ public class CofreApp extends Application {
                 a.showAndWait();
                 loginButton.setDisable(false);
                 return;
-                //TODO: como logar o bloqueado
+                // TODO: como logar o bloqueado
             }
             insereLog(2003, null, Optional.of(user));
             insereLog(2002, null, null);
@@ -459,9 +460,9 @@ public class CofreApp extends Application {
                 }
             }
             this.passwordLoginCount++;
-            insereLog(3003 +this.passwordLoginCount, null, Optional.of(user));
-            if(this.passwordLoginCount >=3){
-                //ToDo: bloquear o usuario
+            insereLog(3003 + this.passwordLoginCount, null, Optional.of(user));
+            if (this.passwordLoginCount >= 3) {
+                // ToDo: bloquear o usuario
                 insereLog(3007, null, Optional.of(user));
             }
             insereLog(3002, null, Optional.of(user));
