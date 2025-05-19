@@ -1,11 +1,18 @@
 package com.review;
 
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.cert.X509Certificate;
+import java.util.List;
+
+import javax.crypto.SecretKey;
+
+import com.review.Files.Arquivo;
+import com.review.Files.Index;
 
 public class ExecutionPipeline {
     static ExecutionPipeline instance = null;
-    private PrivateKey AdmPassphrase = null;
+    private PrivateKey admPrivateKey = null;
     private String password = null;
     public User user = null;
     public boolean isLogado;
@@ -33,11 +40,11 @@ public class ExecutionPipeline {
         this.password = password;
     }
 
-    public PrivateKey getAdmPassphrase() {
-        if (this.AdmPassphrase == null) {
+    public PrivateKey getAdmPrivateKey() {
+        if (this.admPrivateKey == null) {
             throw new IllegalStateException("Passphrase not set");
         }
-        return this.AdmPassphrase;
+        return this.admPrivateKey;
     }
 
     public static ExecutionPipeline getInstance() {
@@ -122,14 +129,23 @@ public class ExecutionPipeline {
     public boolean bypassLogin() {
         this.user = DatabaseManager.getUserByEmail("teste@teste.com");
         this.password = "12345678";
-        this.AdmPassphrase = null;
+        this.admPrivateKey = null;
         return true;
     }
 
-    public void listFiles(String caminhoPasta, String fraseSecretaAdm) {
+    public List<Arquivo> listFiles(String caminhoPasta, String fraseSecretaAdm) {
         if (!InputValidation.isValidPath(caminhoPasta)) {
-            return;
+            // TODO: log
+            System.out.println("Erro: caminho da pasta inválido!");
+            return null;
         }
+
+        if (!InputValidation.isValidPhrase(fraseSecretaAdm)) {
+            // TODO: log
+            System.out.println("Erro: frase secreta inválida!");
+            return null;
+        }
+
         Chaveiro admChaveiro = DatabaseManager.getChaveiroSuperAdm();
         boolean isValidPassphrase = InputValidation.pkAndCaMatchPassphrase(
                 fraseSecretaAdm, admChaveiro.caminho_certificado,
@@ -137,18 +153,31 @@ public class ExecutionPipeline {
         if (!isValidPassphrase) {
             // TODO: log
             System.out.println("Frase secreta do adm inválida");
-            return;
+            return null;
         }
-        try {
-            this.AdmPassphrase = PrivateKeyManager.decryptAndReturnPk(admChaveiro.caminho_chave_privada,
-                    fraseSecretaAdm);
-            // TODO: incrementar total de consultas do usuario
 
+        try {
+            this.admPrivateKey = PrivateKeyManager.decryptAndReturnPk(admChaveiro.caminho_chave_privada,
+                    fraseSecretaAdm);
+            Index index = new Index(caminhoPasta);
+            PublicKey admPublicKey = PrivateKeyManager.loadCaFromFile(admChaveiro.caminho_certificado).getPublicKey();
+            System.out.println("chave publica: " + admPublicKey.toString());
+            if (index.processarDotAsd(admPublicKey)) {
+                // TODO: log
+                System.out.println("Arquivo .asd (assinatura) validado com sucesso!");
+            } else {
+                // TODO: log
+                System.out.println("Erro ao processar arquivo .asd");
+                return null;
+            }
+            SecretKey aesKey = index.processarDotEnv(admPrivateKey);
+            String conteudoArquivoIndice = index.processarDotEnc(aesKey);
+            List<Arquivo> arquivos = index.parseArquivoIndex(conteudoArquivoIndice);
+            return arquivos;
         } catch (Exception e) {
             // e.printStackTrace();
             System.err.println("Erro ao listar arquivos: " + e.getMessage());
+            return null;
         }
-
-        InputValidation.isValidPhrase(fraseSecretaAdm);
     }
 }

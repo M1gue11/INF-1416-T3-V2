@@ -15,7 +15,7 @@ public class Main {
         // } catch (Exception e) {
         // e.printStackTrace();
         // }
-        KeyManager.generateDefaultCA();
+        // KeyManager.generateDefaultCA();
         Application.launch(CofreApp.class, args);
         String pkPath = "keys/minha_chave_privada_ca.bin";
         var caPath = "keys/meu_certificado_ca.pem";

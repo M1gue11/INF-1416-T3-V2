@@ -39,12 +39,23 @@ public class PrivateKeyManager {
      * @throws NoSuchAlgorithmException Se o algoritmo AES ou SHA1PRNG não for
      *                                  encontrado.
      */
-    private static SecretKey deriveAesKeyFromGivenSeed(String seed)
+    public static SecretKey deriveAesKeyFromGivenSeed(String seed)
             throws NoSuchAlgorithmException {
         KeyGenerator keyGen = KeyGenerator.getInstance(AES_ALGORITHM);
         SecureRandom secureRandom = SecureRandom.getInstance(PRNG_ALGORITHM);
 
         secureRandom.setSeed(seed.getBytes(StandardCharsets.UTF_8));
+
+        keyGen.init(AES_KEY_SIZE_BITS, secureRandom);
+        return keyGen.generateKey();
+    }
+
+    public static SecretKey deriveAesKeyFromGivenSeed(byte[] seed)
+            throws NoSuchAlgorithmException {
+        KeyGenerator keyGen = KeyGenerator.getInstance(AES_ALGORITHM);
+        SecureRandom secureRandom = SecureRandom.getInstance(PRNG_ALGORITHM);
+
+        secureRandom.setSeed(seed);
 
         keyGen.init(AES_KEY_SIZE_BITS, secureRandom);
         return keyGen.generateKey();
@@ -218,5 +229,19 @@ public class PrivateKeyManager {
 
     public static String getCommonNameFromCA(X509Certificate certificate) {
         return getParamFromCASubject(certificate, "CN");
+    }
+
+    public static byte[] decryptContentWithAES(byte[] encryptedContent, SecretKey aesKey) throws Exception {
+        Cipher cipher = Cipher.getInstance(AES_TRANSFORMATION);
+        cipher.init(Cipher.DECRYPT_MODE, aesKey);
+        byte[] decryptedContent = cipher.doFinal(encryptedContent);
+        return decryptedContent;
+    }
+
+    public static byte[] encryptContentWithAES(byte[] content, SecretKey aesKey) throws Exception {
+        Cipher cipher = Cipher.getInstance(AES_TRANSFORMATION);
+        cipher.init(Cipher.ENCRYPT_MODE, aesKey);
+        byte[] encryptedContent = cipher.doFinal(content);
+        return encryptedContent;
     }
 }

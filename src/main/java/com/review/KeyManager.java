@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
@@ -250,6 +251,24 @@ public class KeyManager {
         cipher.init(Cipher.ENCRYPT_MODE, pk);
         byte[] encryptedContent = cipher.doFinal(content);
         return encryptedContent;
+    }
+
+    public static String sha256(byte[] content) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(content);
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1)
+                    hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            System.err.println("Erro ao calcular o hash SHA-256: " + e.getMessage());
+            return null;
+        }
     }
 
     public static void generateDefaultCA() {

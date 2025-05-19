@@ -109,7 +109,6 @@ public class TOTP {
         // compensar o desvio do relógio)
         for (int i = -1; i <= 1; i++) {
             String generatedCode = TOTPCode(currentInterval + i);
-            System.out.println("Generated Code: " + generatedCode);
             if (inputTOTP.equals(generatedCode)) {
                 return true;
             }

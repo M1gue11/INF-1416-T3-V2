@@ -12,7 +12,11 @@ public class InputValidation {
         }
 
         File file = new File(filePath);
-        return file.exists() && file.isFile();
+        return file.exists();
+    }
+
+    public static boolean isValidFile(String filePath) {
+        return InputValidation.isValidPath(filePath) && new File(filePath).isFile();
     }
 
     public static boolean isValidEmail(String email) {
@@ -31,7 +35,7 @@ public class InputValidation {
     }
 
     public static boolean isValidPkFilePath(String filePath, String name) {
-        boolean isOk = isValidPath(filePath);
+        boolean isOk = isValidFile(filePath);
         if (!isOk) {
             DatabaseManager.getMessageByMessageCode(6005, Optional.empty(), Optional.of(name));
             System.out.println("caminho da chave privada invalido");
@@ -40,7 +44,7 @@ public class InputValidation {
     }
 
     public static boolean isValidCAFilePath(String filePath, String name) {
-        boolean isOk = isValidPath(filePath);
+        boolean isOk = isValidFile(filePath);
         if (!isOk) {
             DatabaseManager.getMessageByMessageCode(6006, Optional.empty(), Optional.of(name));
             System.out.println("caminho do ca invalido");

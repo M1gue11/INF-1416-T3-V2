@@ -10,16 +10,15 @@ import com.review.KeyManager;
 import com.review.RetornoCadastro;
 import com.review.TOTP;
 import com.review.User;
+import com.review.Files.Arquivo;
+import com.review.Files.ArquivoModel;
 
 import javafx.application.Application;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
@@ -34,7 +33,6 @@ import javafx.embed.swing.SwingFXUtils;
 import java.util.List;
 import java.util.Optional;
 
-import com.review.DatabaseManager;
 import static com.review.DatabaseManager.insereLog;
 
 public class CofreApp extends Application {
@@ -49,7 +47,7 @@ public class CofreApp extends Application {
 
         if (isFirstAccess) {
             insereLog(1005, Optional.empty(), Optional.empty());
-            showFilesPage();
+            showCadastroPage();
         } else {
             if (bypassLogin) {
                 pipeline.bypassLogin();
@@ -129,7 +127,7 @@ public class CofreApp extends Application {
             logView.start(new Stage());
         });
 
-        VBox layout = new VBox(10, header, userAcssesCount, label, toCadastro, toConsulta, openLogs,toLogout);
+        VBox layout = new VBox(10, header, userAcssesCount, label, toCadastro, toConsulta, openLogs, toLogout);
         layout.setAlignment(javafx.geometry.Pos.CENTER);
 
         Scene scene = new Scene(layout, 400, 300);
@@ -139,31 +137,6 @@ public class CofreApp extends Application {
     private void showFilesPage() {
         Label label = new Label("Arquivos Secretos");
         VBox header = new HeaderComponent(pipeline.user);
-
-        // Modelo de dados para a tabela
-        class ArquivoModel {
-            private final StringProperty nome;
-            private final StringProperty dono;
-            private final StringProperty grupo;
-
-            public ArquivoModel(String nome, String dono, String grupo) {
-                this.nome = new SimpleStringProperty(nome);
-                this.dono = new SimpleStringProperty(dono);
-                this.grupo = new SimpleStringProperty(grupo);
-            }
-
-            // Getters e propriedades
-            public String getNome() { return nome.get(); }
-            public StringProperty nomeProperty() { return nome; }
-
-            public String getDono() { return dono.get(); }
-            public StringProperty donoProperty() { return dono; }
-
-            public String getGrupo() { return grupo.get(); }
-            public StringProperty grupoProperty() { return grupo; }
-        }
-
-        ObservableList<ArquivoModel> files = FXCollections.observableArrayList();
 
         Label totalConsultas = new Label("Total de consultas do usuário: 0");
 
@@ -179,42 +152,39 @@ public class CofreApp extends Application {
 
         // Colunas da tabela
         TableColumn<ArquivoModel, String> nomeColumn = new TableColumn<>("NOME_SECRETO_DO_ARQUIVO");
-        nomeColumn.setCellValueFactory(cellData -> cellData.getValue().nomeProperty());
+        nomeColumn.setCellValueFactory(cellData -> cellData.getValue().nomeSecretoArquivo);
 
         TableColumn<ArquivoModel, String> donoColumn = new TableColumn<>("DONO_ARQUIVO");
-        donoColumn.setCellValueFactory(cellData -> cellData.getValue().donoProperty());
+        donoColumn.setCellValueFactory(cellData -> cellData.getValue().donoArquivo);
 
         TableColumn<ArquivoModel, String> grupoColumn = new TableColumn<>("GRUPO_ARQUIVO");
-        grupoColumn.setCellValueFactory(cellData -> cellData.getValue().grupoProperty());
+        grupoColumn.setCellValueFactory(cellData -> cellData.getValue().grupoArquivo);
 
         table.getColumns().addAll(nomeColumn, donoColumn, grupoColumn);
 
+        ObservableList<ArquivoModel> files = FXCollections.observableArrayList();
         botaoListar.setOnAction(e -> {
             String caminhoPasta = ((TextField) campoCaminhoPasta.getChildren().get(1)).getText();
             String fraseSecreta = ((TextField) campoFraseSecreta.getChildren().get(1)).getText();
+            List<Arquivo> arquivos = pipeline.listFiles(caminhoPasta, fraseSecreta);
+            if (arquivos == null) {
+                Alert a = new Alert(Alert.AlertType.ERROR);
+                a.setTitle("Erro");
+                a.setHeaderText("Erro ao listar arquivos.");
+                a.showAndWait();
+                return;
+            }
 
-            // Limpa a lista atual
             files.clear();
-
-            // Adiciona novos dados fictícios (simulando resultado da pipeline)
-            //ToDo adicionar os falores reais com ima lista de ArquivoModel
-            files.addAll(
-                    new ArquivoModel("relatorio_confidencial.pdf", "admin", "financeiro"),
-                    new ArquivoModel("contrato_cliente.docx", "user123", "juridico"),
-                    new ArquivoModel("planilha_orcamento.xlsx", "admin", "financeiro")
-            );
-
-            // Atualiza a tabela
+            files.addAll(arquivos.stream()
+                    .map(arquivo -> ArquivoModel.from(arquivo)).toList());
             table.setItems(files);
-
-            // Chama o pipeline (opcional)
-            pipeline.listFiles(caminhoPasta, fraseSecreta);
         });
 
         // Evento de seleção
         table.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
             if (newSelection != null) {
-                System.out.println("Arquivo selecionado: " + newSelection.getNome());
+                System.out.println("Arquivo selecionado: " + newSelection.nomeSecretoArquivo);
                 // Adicione aqui a lógica para quando um arquivo for selecionado
             }
         });
