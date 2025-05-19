@@ -268,8 +268,8 @@ public class KeyManager {
         int keySize = 2048; // Tamanho da chave RSA
 
         // Nomes dos arquivos de saída
-        String certFilePath = "meu_certificado_ca.pem";
-        String keyFilePath = "minha_chave_privada_ca.bin";
+        String certFilePath = "keys/meu_certificado_ca.pem";
+        String keyFilePath = "keys/minha_chave_privada_ca.bin";
 
         KeyManager km = new KeyManager();
         km.generateAndSaveAssets(
