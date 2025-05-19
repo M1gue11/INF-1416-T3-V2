@@ -17,8 +17,8 @@ public class Main {
         // }
         KeyManager.generateDefaultCA();
         Application.launch(CofreApp.class, args);
-        String pkPath = "minha_chave_privada_ca.bin";
-        var caPath = "meu_certificado_ca.pem";
+        String pkPath = "keys/minha_chave_privada_ca.bin";
+        var caPath = "keys/meu_certificado_ca.pem";
         var sec = "1234";
         ExecutionPipeline pipeline = ExecutionPipeline.getInstance();
         pipeline.cadastro(caPath, pkPath, sec, "Administrador", "12345678",

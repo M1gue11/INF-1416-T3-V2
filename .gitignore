@@ -21,6 +21,10 @@ target/
 .springBeans
 .sts4-cache
 
+cofre_digital.db
+meu_certificado_ca.pem
+minha_chave_privada_ca.bin
+
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/
