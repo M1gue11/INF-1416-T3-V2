@@ -17,7 +17,7 @@ import java.util.List;
 public class CofreApp extends Application {
 
     private Stage primaryStage;
-    private User user = new User();
+    public User user = new User();
     private ExecutionPipeline pipeline = ExecutionPipeline.getInstance();
     private boolean isFirstAccess = pipeline.isFirstAccess();
 
@@ -29,7 +29,7 @@ public class CofreApp extends Application {
         if (isFirstAccess) {
             showCadastroPage();
         } else {
-            showPassphrasePage();
+            showHomePage(user);
         }
 
         primaryStage.setTitle("Cofre digital");
@@ -42,6 +42,7 @@ public class CofreApp extends Application {
         Button toCadastro = new Button("Cadastrar novo usuário");
         Button toConsulta = new Button("Consultar arquivos");
         Button toLogout = new Button("Logout");
+        Button openLogs = new Button("Visualizar Logs");
 
         Label userAcssesCount = new Label("Total de acessos do usuário: " + Integer.toString(user.numero_acessos));
         toCadastro.setOnAction(e -> showCadastroPage());
@@ -49,7 +50,13 @@ public class CofreApp extends Application {
         // modificar para rodar uma função de reset antes
         toLogout.setOnAction(e -> primaryStage.close());
 
-        VBox layout = new VBox(10, label, header, userAcssesCount, toCadastro, toConsulta, toLogout);
+        openLogs.setOnAction(e -> {
+            LogView logView = new LogView();
+            // Abre em um novo Stage
+            logView.start(new Stage());
+        });
+
+            VBox layout = new VBox(10, label, header, userAcssesCount, toCadastro, toConsulta,openLogs, toLogout);
         layout.setAlignment(javafx.geometry.Pos.CENTER);
 
         Scene scene = new Scene(layout, 400, 300);

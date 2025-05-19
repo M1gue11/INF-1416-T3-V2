@@ -1,6 +1,8 @@
 package com.review;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 public class DatabaseManager {
@@ -271,6 +273,50 @@ public class DatabaseManager {
         }
         return -1;
     }
+
+    public static List<String> getMessagesAndTimeByActualTime(long time){
+        List<String> logs = new ArrayList<>();
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+
+        try {
+            conn = DriverManager.getConnection(DB_URL); // Supondo que você tenha uma classe de conexão
+
+            // Consulta que junta as tabelas Registro e Mensagem
+            String sql = "SELECT m.conteudo, r.data_hora " +
+                    "FROM Registro r " +
+                    "JOIN Mensagem m ON r.MID = m.MID " +
+                    "WHERE r.data_hora >= ? " +
+                    "ORDER BY r.data_hora ASC";
+
+            stmt = conn.prepareStatement(sql);
+
+            // Converter o timestamp em milissegundos para um objeto Timestamp do SQL
+            stmt.setTimestamp(1, new Timestamp(time));
+
+            rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                String conteudo = rs.getString("conteudo");
+                Timestamp dataHora = rs.getTimestamp("data_hora");
+
+                // Formatar a saída como desejar
+                logs.add(dataHora + " - " + conteudo);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            // Fechar recursos
+            try { if (rs != null) rs.close(); } catch (SQLException e) { e.printStackTrace(); }
+            try { if (stmt != null) stmt.close(); } catch (SQLException e) { e.printStackTrace(); }
+            try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
+        }
+
+        return logs;
+    }
+
 
     public static String getMessageByMessageCode(int codigo, Optional<String> arqName, Optional<String> loginName) {
         String login = loginName.orElse("desconhecido");
