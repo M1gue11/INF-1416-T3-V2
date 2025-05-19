@@ -118,8 +118,6 @@ public class DatabaseManager {
                 return user;
             } else {
                 System.out.println("Usuário não encontrado.");
-                // TODO: log remover
-                insereLog(2005, Optional.empty(), Optional.empty());
                 return null; // Ou retornar um User com valores default
             }
         } catch (SQLException e) {

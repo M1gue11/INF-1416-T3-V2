@@ -1,9 +1,9 @@
 package com.review;
 
 import java.io.File;
-import java.util.Optional;
 
 import java.security.cert.X509Certificate;
+import java.util.Optional;
 
 public class InputValidation {
     public static boolean isValidPath(String filePath) {
@@ -36,19 +36,11 @@ public class InputValidation {
 
     public static boolean isValidPkFilePath(String filePath, String name) {
         boolean isOk = isValidFile(filePath);
-        if (!isOk) {
-            DatabaseManager.getMessageByMessageCode(6005, Optional.empty(), Optional.of(name));
-            System.out.println("caminho da chave privada invalido");
-        }
         return isOk;
     }
 
     public static boolean isValidCAFilePath(String filePath, String name) {
         boolean isOk = isValidFile(filePath);
-        if (!isOk) {
-            DatabaseManager.getMessageByMessageCode(6006, Optional.empty(), Optional.of(name));
-            System.out.println("caminho do ca invalido");
-        }
         return isOk;
     }
 
@@ -88,10 +80,11 @@ public class InputValidation {
         }
     }
 
-    public static boolean pkAndCaMatchPassphrase(String phrase, String caPath, String pkPath, boolean insertLog) {
+    public static boolean pkAndCaMatchPassphrase(String phrase, String caPath, String pkPath, boolean insertLog,
+            User user) {
         boolean isPhraseOk = isValidPhrase(phrase);
         if (!isPhraseOk) {
-            // TODO: log
+            DatabaseManager.insereLog(6006, Optional.empty(), Optional.of(user));
             System.out.println("Frase secreta inválida");
             return false;
         }

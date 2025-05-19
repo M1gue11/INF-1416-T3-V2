@@ -56,6 +56,7 @@ public class CofreApp extends Application {
                 pipeline.bypassLoginWithAdm();
                 showHomePage();
             } else {
+                insereLog(1006, Optional.empty(), Optional.empty());
                 showPassphrasePage();
             }
         }
@@ -73,6 +74,7 @@ public class CofreApp extends Application {
         Button confirmarButton = new Button("Confirmar código");
         confirmarButton.setOnAction(e -> {
             String codigoTotp = ((TextField) campoCodigoTotp.getChildren().get(1)).getText();
+            // TODO: quantidade de tentativas
             boolean isOk = pipeline.isValidTOTP(codigoTotp);
             if (isOk) {
                 insereLog(4003, Optional.empty(), Optional.of(pipeline.user));
@@ -131,6 +133,7 @@ public class CofreApp extends Application {
         });
 
         toLogout.setOnAction(e -> {
+            insereLog(5004, Optional.empty(), Optional.of(pipeline.user));
             showExitPagew();
         });
         toConsulta.setOnAction(e -> {
@@ -305,7 +308,6 @@ public class CofreApp extends Application {
 
             a.showAndWait();
             if (retCadastro.uid == -1) {
-                // TODO: interrompe o fluxo
                 return;
             }
 
@@ -331,7 +333,6 @@ public class CofreApp extends Application {
                 qrCodeStage.show();
 
             } catch (Exception ex) {
-                // TODO: log e rever esse comportamento
                 ex.printStackTrace();
                 qrCode.setContentText("Erro ao gerar QR Code.");
                 qrCode.setOnCloseRequest(exit -> {
@@ -352,7 +353,10 @@ public class CofreApp extends Application {
 
         if (!isFirstAccess && pipeline.isLogado) {
             Button backButton = new Button("Voltar");
-            backButton.setOnAction(e -> showHomePage());
+            backButton.setOnAction(e -> {
+                DatabaseManager.insereLog(6010, Optional.empty(), Optional.of(pipeline.user));
+                showHomePage();
+            });
             bottonButtons.getChildren().add(backButton);
         }
 
@@ -380,7 +384,6 @@ public class CofreApp extends Application {
             boolean isOk = pipeline.admPassphraseValidation(fraseSecreta);
             if (isOk) {
                 // pipeline.setPassphrase(fraseSecreta);
-                insereLog(1006, Optional.empty(), Optional.empty());
                 showLoginPage();
             } else {
                 Alert a = new Alert(Alert.AlertType.ERROR);

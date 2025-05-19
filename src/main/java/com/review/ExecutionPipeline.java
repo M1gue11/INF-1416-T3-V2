@@ -85,7 +85,7 @@ public class ExecutionPipeline {
             User adm = DatabaseManager.getSuperAdmin();
             Chaveiro admChaveiro = DatabaseManager.getChaveiroByKID(adm.KID);
             return InputValidation.pkAndCaMatchPassphrase(passphrase, admChaveiro.caminho_certificado,
-                    admChaveiro.caminho_chave_privada, true);
+                    admChaveiro.caminho_chave_privada, true, this.user);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -120,7 +120,6 @@ public class ExecutionPipeline {
 
             if (!InputValidation.isValidGroup(gp)) {
                 isFormOk = false;
-                // TODO: log
                 System.out.println("Erro: Grupo inválido.");
             }
 
@@ -132,14 +131,13 @@ public class ExecutionPipeline {
 
             if (!InputValidation.isValidEmail(email)) {
                 isFormOk = false;
-                // TODO: log
                 System.out.println("Erro: Email inválido.");
             }
 
-            if (!InputValidation.pkAndCaMatchPassphrase(fraseSec, caminhoCert, caminhoPk, true)) {
+            if (!InputValidation.pkAndCaMatchPassphrase(fraseSec, caminhoCert, caminhoPk, true, this.user)) {
                 isFormOk = false;
                 DatabaseManager.insereLog(6007, Optional.empty(), Optional.of(user));
-                System.out.println("Erro: A frase secreta não corresponde ao certificado e chave privada.");
+                System.out.println("Erro: Assinatura digital invalida");
             }
 
             if (!isFormOk) {
@@ -191,7 +189,7 @@ public class ExecutionPipeline {
         Chaveiro admChaveiro = DatabaseManager.getChaveiroSuperAdm();
         boolean isValidPassphrase = InputValidation.pkAndCaMatchPassphrase(
                 fraseSecretaAdm, admChaveiro.caminho_certificado,
-                admChaveiro.caminho_chave_privada, true);
+                admChaveiro.caminho_chave_privada, true, this.user);
         if (!isValidPassphrase) {
             // TODO: log
             System.out.println("Nao foi possivel validar a chave secreta do ADM!");
