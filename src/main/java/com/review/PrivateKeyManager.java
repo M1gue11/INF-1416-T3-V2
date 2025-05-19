@@ -39,12 +39,12 @@ public class PrivateKeyManager {
      * @throws NoSuchAlgorithmException Se o algoritmo AES ou SHA1PRNG não for
      *                                  encontrado.
      */
-    private static SecretKey deriveAesKeyFromPassphrase(String passphrase)
+    private static SecretKey deriveAesKeyFromGivenSeed(String seed)
             throws NoSuchAlgorithmException {
         KeyGenerator keyGen = KeyGenerator.getInstance(AES_ALGORITHM);
         SecureRandom secureRandom = SecureRandom.getInstance(PRNG_ALGORITHM);
 
-        secureRandom.setSeed(passphrase.getBytes(StandardCharsets.UTF_8));
+        secureRandom.setSeed(seed.getBytes(StandardCharsets.UTF_8));
 
         keyGen.init(AES_KEY_SIZE_BITS, secureRandom);
         return keyGen.generateKey();
@@ -66,7 +66,7 @@ public class PrivateKeyManager {
             String passphrase)
             throws Exception {
 
-        SecretKey aesKey = deriveAesKeyFromPassphrase(passphrase);
+        SecretKey aesKey = deriveAesKeyFromGivenSeed(passphrase);
         byte[] privateKeyBytes = Files.readAllBytes(Paths.get(privateKeyFilePath));
 
         Cipher cipher = Cipher.getInstance(AES_TRANSFORMATION);
@@ -79,7 +79,7 @@ public class PrivateKeyManager {
 
     public static String encryptContentWithPhrase(String content, String passphrase) throws Exception {
 
-        SecretKey aesKey = deriveAesKeyFromPassphrase(passphrase);
+        SecretKey aesKey = deriveAesKeyFromGivenSeed(passphrase);
         byte[] contentBytes = content.getBytes(StandardCharsets.UTF_8);
 
         Cipher cipher = Cipher.getInstance(AES_TRANSFORMATION);
@@ -93,7 +93,7 @@ public class PrivateKeyManager {
 
     public static String decryptContentWithPhrase(String encryptedContentB32, String passphrase) throws Exception {
 
-        SecretKey aesKey = deriveAesKeyFromPassphrase(passphrase);
+        SecretKey aesKey = deriveAesKeyFromGivenSeed(passphrase);
         Base32 b32 = new Base32(Base32.Alphabet.BASE32, true, false);
         byte[] encryptedContentBytes = b32.fromString(encryptedContentB32);
 
@@ -121,7 +121,7 @@ public class PrivateKeyManager {
             String passphrase)
             throws Exception {
 
-        SecretKey aesKey = deriveAesKeyFromPassphrase(passphrase);
+        SecretKey aesKey = deriveAesKeyFromGivenSeed(passphrase);
         byte[] encryptedPrivateKeyBytes = Files.readAllBytes(Paths.get(encryptedPrivateKeyFilePath));
 
         Cipher cipher = Cipher.getInstance(AES_TRANSFORMATION);
@@ -134,7 +134,7 @@ public class PrivateKeyManager {
     }
 
     public static byte[] decryptPkFile(String encryptedPrivateKeyFilePath, String passphrase) throws Exception {
-        SecretKey aesKey = deriveAesKeyFromPassphrase(passphrase);
+        SecretKey aesKey = deriveAesKeyFromGivenSeed(passphrase);
         byte[] encryptedPrivateKeyBytes = Files.readAllBytes(Paths.get(encryptedPrivateKeyFilePath));
 
         Cipher cipher = Cipher.getInstance(AES_TRANSFORMATION);

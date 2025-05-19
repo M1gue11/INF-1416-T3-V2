@@ -35,23 +35,20 @@ import static com.review.DatabaseManager.insereLog;
 public class CofreApp extends Application {
 
     private Stage primaryStage;
-    public User user = new User();
     private ExecutionPipeline pipeline = ExecutionPipeline.getInstance();
     private boolean isFirstAccess = pipeline.isFirstAccess();
     private static final boolean bypassLogin = true;
 
     public void start(Stage primaryStage) {
         this.primaryStage = primaryStage;
-        insereLog(1001, Optional.empty(), Optional.empty());
-        // Cria a cena inicial com um user aleatorio
-        user.fetchDefault();
+
         if (isFirstAccess) {
             insereLog(1005, Optional.empty(), Optional.empty());
             showCadastroPage();
         } else {
             if (bypassLogin) {
                 pipeline.bypassLogin();
-                showFilesPage();
+                showHomePage();
             } else {
                 showPassphrasePage();
             }
@@ -157,7 +154,6 @@ public class CofreApp extends Application {
 
         VBox layout = new VBox(10, header, totalConsultas, label, campoCaminhoPasta, campoFraseSecreta, botaoListar,
                 botaoVoltar);
-
 
         layout.setAlignment(javafx.geometry.Pos.CENTER);
 
