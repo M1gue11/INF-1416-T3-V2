@@ -8,7 +8,6 @@ import javafx.stage.Stage;
 import java.util.List;
 
 import com.review.DatabaseManager;
-import com.review.view.CofreApp;
 
 public class LogView extends Application {
     private TextArea logTextArea;
@@ -44,7 +43,7 @@ public class LogView extends Application {
             }
         });
 
-        HBox buttonsContainer = new HBox(70, clearButton, updateButton,closeButton);
+        HBox buttonsContainer = new HBox(70, clearButton, updateButton, closeButton);
         VBox layout = new VBox(10, new Label("Logs do Sistema"), logTextArea, buttonsContainer);
 
         Scene scene = new Scene(layout, 600, 400);

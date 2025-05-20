@@ -379,7 +379,7 @@ public class DatabaseManager {
             conn = DriverManager.getConnection(DB_URL); // Supondo que você tenha uma classe de conexão
 
             // Consulta que junta as tabelas Registro e Mensagem
-            String sql = "SELECT m.conteudo, r.data_hora " +
+            String sql = "SELECT m.conteudo, r.data_hora, m.codigo " +
                     "FROM Registro r " +
                     "JOIN Mensagem m ON r.MID = m.MID " +
                     "ORDER BY r.data_hora ASC";
@@ -393,9 +393,10 @@ public class DatabaseManager {
             while (rs.next()) {
                 String conteudo = rs.getString("conteudo");
                 Timestamp dataHora = rs.getTimestamp("data_hora");
+                Integer codigo = rs.getInt("codigo");
 
                 // Formatar a saída como desejar
-                logs.add(dataHora + " - " + conteudo);
+                logs.add(dataHora + " - " + codigo + " - " + conteudo);
             }
 
         } catch (SQLException e) {

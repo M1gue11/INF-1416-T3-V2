@@ -284,5 +284,11 @@ public class KeyManager {
                 user1CA.stateOrProvince, user1CA.country,
                 user1CA.validityDays, keySize,
                 certFilePath, keyFilePath, user1CA.passPhrase);
+
+        Certificado admCA = Certificado.getDefault();
+        km.generateAndSaveAssets(admCA.commonName, admCA.emailAddress, admCA.orgUnit,
+                admCA.organization, admCA.locality, admCA.stateOrProvince, admCA.country,
+                admCA.validityDays, keySize,
+                "keys/admCA.pem", "keys/admPK.bin", admCA.passPhrase);
     }
 }

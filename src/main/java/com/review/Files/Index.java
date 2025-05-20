@@ -84,7 +84,6 @@ public class Index {
         sig.update(conteudoCript);
         boolean isValid = sig.verify(assinaturaBin);
         if (!isValid) {
-            // TODO: log 7008
             System.err.println("Falha na verificação de integridade/autenticidade do arquivo de índice.");
             return false;
         }

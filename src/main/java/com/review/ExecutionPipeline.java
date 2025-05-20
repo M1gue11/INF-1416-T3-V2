@@ -286,10 +286,10 @@ public class ExecutionPipeline {
             Index index = new Index(caminhoPasta);
             PublicKey admPublicKey = PrivateKeyManager.loadCaFromFile(admChaveiro.caminho_certificado).getPublicKey();
             if (index.processarDotAsd(admPublicKey)) {
-                // TODO: log
+                DatabaseManager.insereLog(7006, Optional.empty(), Optional.of(this.user));
                 System.out.println("Arquivo .asd (assinatura) validado com sucesso!");
             } else {
-                // TODO: log
+                DatabaseManager.insereLog(7008, Optional.empty(), Optional.of(this.user));
                 System.out.println("Erro ao processar arquivo .asd");
                 return null;
             }
