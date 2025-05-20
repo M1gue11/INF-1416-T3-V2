@@ -96,6 +96,7 @@ public class InputValidation {
             return isMatchCaAndPk;
 
         } catch (Exception e) {
+            e.printStackTrace();
             System.out.println("Erro ao descriptografar a chave privada: " + e.getMessage());
             return false;
         }

@@ -151,6 +151,20 @@ public class PrivateKeyManager {
         cipher.init(Cipher.DECRYPT_MODE, aesKey);
         byte[] decryptedPrivateKeyBytes = cipher.doFinal(encryptedPrivateKeyBytes);
 
+        // Check if we have PEM format
+        String pemContent = new String(decryptedPrivateKeyBytes, StandardCharsets.UTF_8);
+        if (pemContent.contains("-----BEGIN PRIVATE KEY-----")) {
+            // Extract the base64 content (remove header, footer, and newlines)
+            String base64Content = pemContent
+                    .replace("-----BEGIN PRIVATE KEY-----", "")
+                    .replace("-----END PRIVATE KEY-----", "")
+                    .replaceAll("\\s+", ""); // Remove all whitespace including newlines
+
+            // Decode the base64 content to get the binary DER format
+            return Base64.getDecoder().decode(base64Content);
+        }
+
+        // If not PEM format, return as is (assuming it's already binary DER)
         return decryptedPrivateKeyBytes;
     }
 
@@ -173,11 +187,29 @@ public class PrivateKeyManager {
 
         String certString = new String(certBytes, StandardCharsets.UTF_8);
         if (certString.contains("-----BEGIN CERTIFICATE-----")) {
-            String base64Encoded = certString
-                    .replace("-----BEGIN CERTIFICATE-----", "")
-                    .replaceAll(System.lineSeparator(), "")
-                    .replace("-----END CERTIFICATE-----", "");
-            certBytes = Base64.getDecoder().decode(base64Encoded);
+            // More robust extraction of the Base64 content
+            StringBuilder base64Content = new StringBuilder();
+            boolean readingContent = false;
+
+            // Process the PEM file line by line
+            String[] lines = certString.split("\\r?\\n");
+            for (String line : lines) {
+                if (line.contains("-----BEGIN CERTIFICATE-----")) {
+                    readingContent = true;
+                    continue;
+                } else if (line.contains("-----END CERTIFICATE-----")) {
+                    break;
+                } else if (readingContent) {
+                    // Only append actual Base64 content (skip empty lines or metadata)
+                    line = line.trim();
+                    if (!line.isEmpty() && !line.contains(":")) {
+                        base64Content.append(line);
+                    }
+                }
+            }
+
+            // Decode the cleaned Base64 content
+            certBytes = Base64.getDecoder().decode(base64Content.toString());
         }
 
         return (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(certBytes));

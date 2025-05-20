@@ -38,7 +38,7 @@ public class ExecutionPipeline {
     }
 
     public boolean bypassLoginWithAdm() {
-        this.user = DatabaseManager.getUserByEmail("teste@teste.com");
+        this.user = DatabaseManager.getUserByEmail("admin@inf1416.puc-rio.br");
         this.password = "12345678";
         this.admPrivateKey = null;
         confirmLogin();

@@ -53,7 +53,7 @@ public class CofreApp extends Application {
             showCadastroPage();
         } else {
             if (bypassLogin) {
-                pipeline.bypassLoginWithUser1();
+                pipeline.bypassLoginWithAdm();
                 showHomePage();
             } else {
                 insereLog(1006, Optional.empty(), Optional.empty());
@@ -199,7 +199,7 @@ public class CofreApp extends Application {
 
         HBox campoCaminhoPasta = new HBox(10, new Label("Caminho da pasta: "), new TextField());
         HBox campoFraseSecreta = new HBox(10, new Label("Frase secreta ADM: "), new TextField());
-        HBox campoFraseSecretaUser = new HBox(10, new Label("Sua secreta: "), new TextField());
+        HBox campoFraseSecretaUser = new HBox(10, new Label("Sua frase secreta: "), new TextField());
         Button botaoListar = new Button("Listar");
         Button botaoVoltar = new Button("Voltar");
         botaoVoltar.setOnAction(e -> {
