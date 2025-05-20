@@ -3,6 +3,7 @@ package com.review;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -52,13 +53,11 @@ public class PrivateKeyManager {
 
     public static SecretKey deriveAesKeyFromGivenSeed(byte[] seed)
             throws NoSuchAlgorithmException {
-        KeyGenerator keyGen = KeyGenerator.getInstance(AES_ALGORITHM);
-        SecureRandom secureRandom = SecureRandom.getInstance(PRNG_ALGORITHM);
-
+        SecureRandom secureRandom = SecureRandom.getInstance("SHA1PRNG");
         secureRandom.setSeed(seed);
-
-        keyGen.init(AES_KEY_SIZE_BITS, secureRandom);
-        return keyGen.generateKey();
+        byte[] chaveAESBytes = new byte[32];
+        secureRandom.nextBytes(chaveAESBytes);
+        return new SecretKeySpec(chaveAESBytes, "AES");
     }
 
     /**

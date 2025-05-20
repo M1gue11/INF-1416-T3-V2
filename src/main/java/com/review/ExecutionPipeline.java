@@ -205,17 +205,19 @@ public class ExecutionPipeline {
             }
             PrivateKey pk = PrivateKeyManager.decryptAndReturnPk(chaveiroUser.caminho_chave_privada,
                     userPhrase);
-            PublicKey ca = PrivateKeyManager.loadCaFromFile(chaveiroUser.caminho_certificado)
+            PublicKey publicKey = PrivateKeyManager.loadCaFromFile(chaveiroUser.caminho_certificado)
                     .getPublicKey();
+
             Index index = new Index(caminhoPasta, newSelection.nomeCodigoArquivo.getValue());
-            if (!index.processarDotAsd(ca)) {
+            SecretKey aesKey = index.processarDotEnv(pk);
+            String conteudoArquivo = index.processarDotEnc(aesKey);
+
+            if (!index.processarDotAsd(publicKey, conteudoArquivo)) {
                 System.out.println(
                         "Erro ao processar arquivo .asd do arquivo selecionado: " + newSelection.nomeCodigoArquivo);
                 return;
             }
             DatabaseManager.insereLog(7014, optFile, optUser);
-            SecretKey aesKey = index.processarDotEnv(pk);
-            String conteudoArquivo = index.processarDotEnc(aesKey);
             DatabaseManager.insereLog(7013, optFile, optUser);
             System.out.println("Conteudo do arquivo: " + conteudoArquivo);
 
@@ -285,7 +287,11 @@ public class ExecutionPipeline {
                     fraseSecretaAdm);
             Index index = new Index(caminhoPasta);
             PublicKey admPublicKey = PrivateKeyManager.loadCaFromFile(admChaveiro.caminho_certificado).getPublicKey();
-            if (index.processarDotAsd(admPublicKey)) {
+
+            SecretKey aesKey = index.processarDotEnv(admPrivateKey);
+            String conteudoArquivo = index.processarDotEnc(aesKey);
+
+            if (index.processarDotAsd(admPublicKey, conteudoArquivo)) {
                 DatabaseManager.insereLog(7006, Optional.empty(), Optional.of(this.user));
                 System.out.println("Arquivo .asd (assinatura) validado com sucesso!");
             } else {
@@ -293,9 +299,7 @@ public class ExecutionPipeline {
                 System.out.println("Erro ao processar arquivo .asd");
                 return null;
             }
-            SecretKey aesKey = index.processarDotEnv(admPrivateKey);
-            String conteudoArquivoIndice = index.processarDotEnc(aesKey);
-            List<Arquivo> arquivos = index.parseArquivoIndex(conteudoArquivoIndice);
+            List<Arquivo> arquivos = index.parseArquivoIndex(conteudoArquivo);
             this.incrementarConsultasEAtualizarUsuario();
             return arquivos;
         } catch (Exception e) {

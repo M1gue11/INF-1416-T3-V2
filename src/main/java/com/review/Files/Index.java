@@ -76,16 +76,17 @@ public class Index {
         return PrivateKeyManager.deriveAesKeyFromGivenSeed(seedPrngBytes);
     }
 
-    public boolean processarDotAsd(PublicKey pk) throws Exception {
-        byte[] conteudoCript = Files.readAllBytes(Paths.get(this.indexPaths.encPath));
+    public boolean processarDotAsd(PublicKey pk, String textoPlanoDoIndice) throws Exception {
         byte[] assinaturaBin = Files.readAllBytes(Paths.get(this.indexPaths.asdPath));
-        Signature sig = Signature.getInstance("SHA256withRSA");
+        byte[] bytesDoTextoPlano = textoPlanoDoIndice.getBytes(StandardCharsets.UTF_8);
+
+        Signature sig = Signature.getInstance("SHA1withRSA"); // << DEVE SER O MESMO DA CRIAÇÃO
         sig.initVerify(pk);
-        sig.update(conteudoCript);
+        sig.update(bytesDoTextoPlano); // Usando o texto plano do índice
         boolean isValid = sig.verify(assinaturaBin);
         if (!isValid) {
-            System.err.println("Falha na verificação de integridade/autenticidade do arquivo de índice.");
-            return false;
+            System.err.println(
+                    "Falha na verificação de integridade/autenticidade do arquivo de índice (processarDotAsd).");
         }
         return isValid;
     }
@@ -411,14 +412,6 @@ public class Index {
         }
         System.out.println("Chave AES do índice obtida do index.env com sucesso.");
 
-        // 2. Simular a verificação do .asd
-        boolean assinaturaValida = leitorIndice.processarDotAsd(adminPublicKey);
-        if (!assinaturaValida) {
-            System.err.println("Assinatura do index.asd inválida!");
-            return;
-        }
-        System.out.println("Assinatura do index.asd verificada com sucesso.");
-
         // 3. Simular a descriptografia do .enc
         String conteudoIndiceDescriptografado = leitorIndice.processarDotEnc(aesKeyDoIndice);
         if (conteudoIndiceDescriptografado == null) {
@@ -427,6 +420,14 @@ public class Index {
         }
         System.out.println("Conteúdo do index.enc descriptografado com sucesso:");
         System.out.println(conteudoIndiceDescriptografado);
+
+        // 2. Simular a verificação do .asd
+        boolean assinaturaValida = leitorIndice.processarDotAsd(adminPublicKey, conteudoIndiceDescriptografado);
+        if (!assinaturaValida) {
+            System.err.println("Assinatura do index.asd inválida!");
+            return;
+        }
+        System.out.println("Assinatura do index.asd verificada com sucesso.");
 
         // 4. Parsear o conteúdo
         List<Arquivo> arquivosLidos = leitorIndice.parseArquivoIndex(conteudoIndiceDescriptografado);
