@@ -41,7 +41,7 @@ public class CofreApp extends Application {
     private Stage primaryStage;
     private ExecutionPipeline pipeline = ExecutionPipeline.getInstance();
     private boolean isFirstAccess = pipeline.isFirstAccess();
-    private static final boolean bypassLogin = true;
+    private static final boolean bypassLogin = false;
     private int toptCount = 0;
 
     public void start(Stage primaryStage) {
@@ -53,7 +53,7 @@ public class CofreApp extends Application {
             showCadastroPage();
         } else {
             if (bypassLogin) {
-                pipeline.bypassLoginWithUser1();
+                pipeline.bypassLoginWithAdm();
                 showHomePage();
             } else {
                 insereLog(1006, Optional.empty(), Optional.empty());
@@ -100,8 +100,8 @@ public class CofreApp extends Application {
 
         Button sairButton = new Button("Sair");
         sairButton.setOnAction(e -> {
-            System.exit(0);
             insereLog(1002, Optional.empty(), Optional.empty());
+            System.exit(0);
         });
 
         HBox buttonContainer = new HBox(10, voltarButton, sairButton);
