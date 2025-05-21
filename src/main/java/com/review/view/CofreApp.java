@@ -53,7 +53,7 @@ public class CofreApp extends Application {
             showCadastroPage();
         } else {
             if (bypassLogin) {
-                pipeline.bypassLoginWithAdm();
+                pipeline.bypassLoginWithUser1();
                 showHomePage();
             } else {
                 insereLog(1006, Optional.empty(), Optional.empty());

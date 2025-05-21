@@ -117,7 +117,7 @@ public class DatabaseManager {
 
                 return user;
             } else {
-                System.out.println("Usuário não encontrado.");
+                System.out.println("Usuário não encontrado: " + " " + email);
                 return null; // Ou retornar um User com valores default
             }
         } catch (SQLException e) {

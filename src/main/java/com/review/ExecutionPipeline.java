@@ -1,6 +1,5 @@
 package com.review;
 
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -53,7 +52,7 @@ public class ExecutionPipeline {
     }
 
     public boolean bypassLoginWithUser1() {
-        this.user = DatabaseManager.getUserByEmail("miguel@gmail.com");
+        this.user = DatabaseManager.getUserByEmail("user01@inf1416.puc-rio.br");
         this.password = "12345678";
         this.admPrivateKey = null;
         confirmLogin();
@@ -234,7 +233,7 @@ public class ExecutionPipeline {
             cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
             cipher.init(Cipher.DECRYPT_MODE, kaes);
             byte[] decryptedContent = cipher.doFinal(conteudoCript);
-            String dotEnc = new String(decryptedContent, StandardCharsets.UTF_8);
+            // String dotEnc = new String(decryptedContent);
 
             // System.out.println("Conteudo do arquivo .enc: " + dotEnc);
 
@@ -251,12 +250,6 @@ public class ExecutionPipeline {
                 return;
             }
 
-            // if (!index.processarDotAsd(publicKey, dotEnc)) {
-            // System.out.println(
-            // "Erro ao processar arquivo .asd do arquivo selecionado: " +
-            // newSelection.nomeCodigoArquivo);
-            // return;
-            // }
             DatabaseManager.insereLog(7014, optFile, optUser);
             DatabaseManager.insereLog(7013, optFile, optUser);
 
@@ -266,7 +259,7 @@ public class ExecutionPipeline {
                 Files.createDirectories(outputPath);
             }
             Path caminhoArquivo = Paths.get(DEFAULT_FILE_OUTPUT_FOLDER, newSelection.nomeSecretoArquivo.getValue());
-            Files.writeString(caminhoArquivo, dotEnc);
+            Files.write(caminhoArquivo, decryptedContent);
             System.out.println("Arquivo escrito em: " + caminhoArquivo.toAbsolutePath());
         } catch (Exception e) {
             System.out.println("Erro ao abrir arquivo selecionado: " + e.getMessage());
@@ -353,6 +346,7 @@ public class ExecutionPipeline {
         if (arquivos == null) {
             return arquivos;
         }
+
         return arquivos.stream()
                 .filter(arquivo -> user.isAllowed(arquivo.grupoArquivo))
                 .toList();

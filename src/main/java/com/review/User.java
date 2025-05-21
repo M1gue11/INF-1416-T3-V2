@@ -32,7 +32,7 @@ public class User {
     }
 
     public boolean isAllowed(String group) {
-        return this.grupo.equals(group) || this.grupo.equals("Administrador");
+        return this.grupo.toLowerCase().equals(group.toLowerCase()) || this.grupo.equals("Administrador");
     }
 
     public boolean isBloqueado() {
