@@ -1,16 +1,23 @@
 package com.review;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.security.Signature;
 import java.security.cert.X509Certificate;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 import com.review.Files.Arquivo;
 import com.review.Files.ArquivoModel;
@@ -189,37 +196,69 @@ public class ExecutionPipeline {
         boolean isUserOwner = this.user.email.equals(newSelection.donoArquivo.getValue());
         if (!isUserOwner) {
             System.out.println("Arquivo pertence a outro usuario");
-            // TODO: mensagem
             DatabaseManager.insereLog(7012, optFile, optUser);
             return;
         }
-
-        System.out.println("Arquivo pertence ao usuario logado");
         try {
             DatabaseManager.insereLog(7011, optFile, optUser);
             Chaveiro chaveiroUser = DatabaseManager.getChaveiroByKID(this.user.KID);
-            if (!InputValidation.pkAndCaMatchPassphrase(userPhrase, chaveiroUser.caminho_certificado,
-                    chaveiroUser.caminho_chave_privada, true, this.user)) {
-                System.out.println("Erro: Assinatura digital invalida");
-                return;
-            }
-            PrivateKey pk = PrivateKeyManager.decryptAndReturnPk(chaveiroUser.caminho_chave_privada,
-                    userPhrase);
-            PublicKey publicKey = PrivateKeyManager.loadCaFromFile(chaveiroUser.caminho_certificado)
-                    .getPublicKey();
+
+            byte[] privatek = PrivateKeyManager.decryptPkFile(chaveiroUser.caminho_chave_privada, userPhrase);
+            X509Certificate cert = PrivateKeyManager.loadCaFromFile(chaveiroUser.caminho_certificado);
+            PublicKey pubk = cert.getPublicKey();
+            // validate
+
+            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privatek);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            PrivateKey privatekobj = keyFactory.generatePrivate(keySpec);
+            PublicKey publicKey = pubk;
+            // Debug
+            // System.out.println("Chave privada: " + privatekobj);
+            // System.out.println("Chave publica: " + publicKey);
 
             Index index = new Index(caminhoPasta, newSelection.nomeCodigoArquivo.getValue());
-            SecretKey aesKey = index.processarDotEnv(pk);
-            String conteudoArquivo = index.processarDotEnc(aesKey);
 
-            if (!index.processarDotAsd(publicKey, conteudoArquivo)) {
-                System.out.println(
-                        "Erro ao processar arquivo .asd do arquivo selecionado: " + newSelection.nomeCodigoArquivo);
+            // SecretKey aesKey = index.processarDotEnv(privatekobj);
+            Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+            byte[] encryptedSeedPrng = Files.readAllBytes(Paths.get(index.indexPaths.envPath));
+            cipher.init(Cipher.DECRYPT_MODE, privatekobj);
+            byte[] seed = cipher.doFinal(encryptedSeedPrng);
+            SecureRandom secureRandom = SecureRandom.getInstance("SHA1PRNG");
+            secureRandom.setSeed(seed);
+            byte[] chaveAESBytes = new byte[32];
+            secureRandom.nextBytes(chaveAESBytes);
+            SecretKeySpec kaes = new SecretKeySpec(chaveAESBytes, "AES");
+
+            // String conteudoArquivo = index.processarDotEnc(aesKey);
+            byte[] conteudoCript = Files.readAllBytes(Paths.get(index.indexPaths.encPath));
+            cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+            cipher.init(Cipher.DECRYPT_MODE, kaes);
+            byte[] decryptedContent = cipher.doFinal(conteudoCript);
+            String dotEnc = new String(decryptedContent, StandardCharsets.UTF_8);
+
+            // System.out.println("Conteudo do arquivo .enc: " + dotEnc);
+
+            byte[] assinaturaBin = Files.readAllBytes(Paths.get(index.indexPaths.asdPath));
+            byte[] bytesDoTextoPlano = decryptedContent;
+
+            Signature sig = Signature.getInstance("SHA1withRSA"); // << DEVE SER O MESMO DA CRIAÇÃO
+            sig.initVerify(publicKey);
+            sig.update(bytesDoTextoPlano); // Usando o texto plano do índice
+            boolean isValid = sig.verify(assinaturaBin);
+            if (!isValid) {
+                System.out.println("Erro: Assinatura digital inválida.");
+                DatabaseManager.insereLog(7015, optFile, optUser);
                 return;
             }
+
+            // if (!index.processarDotAsd(publicKey, dotEnc)) {
+            // System.out.println(
+            // "Erro ao processar arquivo .asd do arquivo selecionado: " +
+            // newSelection.nomeCodigoArquivo);
+            // return;
+            // }
             DatabaseManager.insereLog(7014, optFile, optUser);
             DatabaseManager.insereLog(7013, optFile, optUser);
-            System.out.println("Conteudo do arquivo: " + conteudoArquivo);
 
             // escrevendo o conteudo do arquivo no disco
             Path outputPath = Paths.get(DEFAULT_FILE_OUTPUT_FOLDER);
@@ -227,7 +266,7 @@ public class ExecutionPipeline {
                 Files.createDirectories(outputPath);
             }
             Path caminhoArquivo = Paths.get(DEFAULT_FILE_OUTPUT_FOLDER, newSelection.nomeSecretoArquivo.getValue());
-            Files.writeString(caminhoArquivo, conteudoArquivo);
+            Files.writeString(caminhoArquivo, dotEnc);
             System.out.println("Arquivo escrito em: " + caminhoArquivo.toAbsolutePath());
         } catch (Exception e) {
             System.out.println("Erro ao abrir arquivo selecionado: " + e.getMessage());
